@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
 import type { Form, FormFieldBlock, FormFieldBlockType } from '../types/payload'
 import { hasOptions } from '../lib/fieldBlocks'
 import { DRAG_TYPE } from './FieldPaletteStrip'
@@ -36,14 +37,24 @@ const PreviewField = memo(function PreviewField({ block }: { block: FormFieldBlo
   const inputId = `preview-${block.id ?? block.blockType}`
 
   if (block.blockType === 'message') {
-    const text = block.messageText ?? 'Message or section text'
+    const raw = block.messageText ?? ''
     const asHeading = block.asHeading
+    const text = raw || 'Message or section text'
     return (
       <div className={`preview-field ${widthClass} preview-field--message`}>
         {asHeading ? (
-          <h3 className="preview-message-heading">{text || 'Section heading'}</h3>
+          <>
+            <h3 className="preview-message-heading">{raw.split('\n')[0] || 'Section heading'}</h3>
+            {raw.includes('\n') && (
+              <div className="preview-message-markdown">
+                <ReactMarkdown>{raw.slice(raw.indexOf('\n') + 1).trim()}</ReactMarkdown>
+              </div>
+            )}
+          </>
         ) : (
-          <p className="preview-message-text">{text}</p>
+          <div className="preview-message-markdown">
+            <ReactMarkdown>{text}</ReactMarkdown>
+          </div>
         )}
       </div>
     )

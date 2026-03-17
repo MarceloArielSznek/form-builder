@@ -103,8 +103,33 @@
 .field-props__hint {
   font-size: 0.78rem;
   color: var(--text-soft);
-  margin: 0.45rem 0 0;
+  margin: 0.35rem 0 0.5rem;
   line-height: 1.45;
+}
+
+.field-props__markdown-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.field-props__toolbar-btn {
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-h);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.field-props__toolbar-btn:hover {
+  background: var(--bg-muted);
+  border-color: var(--text-soft);
 }
 
 .field-props__checkbox-label {

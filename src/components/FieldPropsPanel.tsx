@@ -1,8 +1,113 @@
+import { useRef } from 'react'
 import type { ValidationIssue } from '../lib/formValidation'
 import type { FormFieldBlock, WidthOption, SelectRadioOption } from '../types/payload'
 import { WIDTH_OPTIONS, FORM_FIELD_TYPES } from '../types/payload'
 import { hasOptions } from '../lib/fieldBlocks'
 import './FieldPropsPanel.css'
+
+function insertAtCursor(
+  text: string,
+  before: string,
+  after: string,
+  selectionStart: number,
+  selectionEnd: number
+): { newValue: string; newStart: number; newEnd: number } {
+  const head = text.slice(0, selectionStart)
+  const tail = text.slice(selectionEnd)
+  const selected = text.slice(selectionStart, selectionEnd)
+  const newValue = head + before + selected + after + tail
+  const newStart = selectionStart + before.length
+  const newEnd = newStart + selected.length
+  return { newValue, newStart, newEnd }
+}
+
+interface MessageEditorProps {
+  value: string
+  onChange: (value: string) => void
+  textareaId: string
+}
+
+function MessageEditor({ value, onChange, textareaId }: MessageEditorProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const applyFormat = (before: string, after: string = before) => {
+    const el = textareaRef.current
+    if (!el) {
+      onChange(value + before + after)
+      return
+    }
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const { newValue, newStart, newEnd } = insertAtCursor(value, before, after, start, end)
+    onChange(newValue)
+    el.focus()
+    requestAnimationFrame(() => {
+      el.setSelectionRange(newStart, newEnd)
+    })
+  }
+
+  const insertLine = (prefix: string) => {
+    const el = textareaRef.current
+    const pos = el ? el.selectionStart : value.length
+    const lines = value.slice(0, pos).split('\n')
+    const lineIndex = lines.length - 1
+    const currentLine = lines[lineIndex] ?? ''
+    const newLine = currentLine.trimStart() ? `\n${prefix} ` : `${prefix} `
+    const before = value.slice(0, pos)
+    const after = value.slice(pos)
+    const newValue = before + newLine + after
+    onChange(newValue)
+    if (el) {
+      el.focus()
+      const newPos = pos + newLine.length
+      requestAnimationFrame(() => el.setSelectionRange(newPos, newPos))
+    }
+  }
+
+  return (
+    <div className="field-props__group">
+      <label className="field-props__label" htmlFor={textareaId}>
+        Message / section text
+      </label>
+      <p className="field-props__hint">Use the toolbar or type Markdown (e.g. # H1, ## H2, **bold**, *italic*, [link](url)).</p>
+      <div className="field-props__markdown-toolbar">
+        <button type="button" className="field-props__toolbar-btn" onClick={() => applyFormat('**', '**')} title="Bold">
+          <b>B</b>
+        </button>
+        <button type="button" className="field-props__toolbar-btn" onClick={() => applyFormat('*', '*')} title="Italic">
+          <i>I</i>
+        </button>
+        <button type="button" className="field-props__toolbar-btn" onClick={() => insertLine('#')} title="Heading 1">
+          H1
+        </button>
+        <button type="button" className="field-props__toolbar-btn" onClick={() => insertLine('##')} title="Heading 2">
+          H2
+        </button>
+        <button type="button" className="field-props__toolbar-btn" onClick={() => insertLine('-')} title="Bullet list">
+          •
+        </button>
+        <button type="button" className="field-props__toolbar-btn" onClick={() => insertLine('1.')} title="Numbered list">
+          1.
+        </button>
+        <button type="button" className="field-props__toolbar-btn" onClick={() => applyFormat('[', '](url)')} title="Link">
+          🔗
+        </button>
+        <button type="button" className="field-props__toolbar-btn" onClick={() => insertLine('>')} title="Blockquote">
+          “
+        </button>
+      </div>
+      <textarea
+        ref={textareaRef}
+        id={textareaId}
+        className="app-textarea field-props__input"
+        rows={4}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Instructions or section heading text. Markdown supported."
+      />
+    </div>
+  )
+}
 
 interface FieldPropsPanelProps {
   block: FormFieldBlock
@@ -93,19 +198,11 @@ export default function FieldPropsPanel({
 
       {block.blockType === 'message' && (
         <>
-          <div className="field-props__group">
-            <label className="field-props__label" htmlFor={getInputId('message')}>
-              Message / section text
-            </label>
-            <textarea
-              id={getInputId('message')}
-              className="app-textarea field-props__input"
-              rows={3}
-              value={(block as { messageText?: string }).messageText ?? ''}
-              onChange={(e) => update({ messageText: e.target.value } as Partial<FormFieldBlock>)}
-              placeholder="Instructions or section heading text"
-            />
-          </div>
+          <MessageEditor
+            value={(block as { messageText?: string }).messageText ?? ''}
+            onChange={(messageText) => update({ messageText } as Partial<FormFieldBlock>)}
+            textareaId={getInputId('message')}
+          />
           <div className="field-props__group field-props__group--row">
             <label className="field-props__checkbox-label">
               <input

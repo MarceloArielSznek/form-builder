@@ -33,7 +33,7 @@ export function createEmptyBlock(type: FormFieldBlockType): FormFieldBlock {
     case 'date':
       return { id, blockType: 'date', blockName, name: '', label: '', required: false, width: '100' }
     case 'message':
-      return { id, blockType: 'message', blockName, message: undefined }
+      return { id, blockType: 'message', blockName, messageText: '' }
     case 'payment':
       return { id, blockType: 'payment', blockName, name: '', label: '', required: false, width: '100', basePrice: 0, priceConditions: [] }
     case 'projectMedia':
@@ -50,9 +50,15 @@ const PAYLOAD_BLOCK_TYPES = new Set([
   'text', 'textarea', 'email', 'number', 'checkbox', 'select', 'radio', 'date', 'message', 'projectMedia',
 ])
 
-/** Fields to send to Payload (only block types that Payload supports). */
+/** Fields to send to Payload (only block types that Payload supports). Message blocks send content in both messageText and message so Payload receives the format (e.g. markdown / H2). */
 export function fieldsForPayload(fields: FormFieldBlock[]): FormFieldBlock[] {
-  return fields.filter((b) => PAYLOAD_BLOCK_TYPES.has(b.blockType))
+  return fields
+    .filter((b) => PAYLOAD_BLOCK_TYPES.has(b.blockType))
+    .map((block) => {
+      if (block.blockType !== 'message') return block
+      const text = (block as { messageText?: string }).messageText ?? ''
+      return { ...block, message: text } as FormFieldBlock
+    })
 }
 
 export function ensureBlockId<T extends FormFieldBlock>(block: T): T {
@@ -63,8 +69,101 @@ export function ensureBlockId<T extends FormFieldBlock>(block: T): T {
   return { ...block, id: newId() }
 }
 
+/** Collect plain text from a node's children (recursive). */
+function textFromChildren(children: unknown[]): string {
+  let out = ''
+  for (const node of children) {
+    if (node && typeof node === 'object') {
+      const n = node as Record<string, unknown>
+      if (typeof n.text === 'string') out += n.text
+      if (Array.isArray(n.children)) out += textFromChildren(n.children)
+    }
+  }
+  return out
+}
+
+/** Extract plain text from Payload rich text (Lexical root.children or Slate-like array). */
+function extractTextFromRichText(value: unknown): string {
+  if (value == null) return ''
+  if (typeof value === 'string') return value
+  if (typeof value !== 'object') return ''
+
+  if (Array.isArray(value)) {
+    return value.map(extractTextFromRichText).join('')
+  }
+
+  const obj = value as Record<string, unknown>
+  if (typeof obj.text === 'string') return obj.text
+
+  const root = obj.root as Record<string, unknown> | undefined
+  const children = (root?.children ?? obj.children) as unknown[] | undefined
+  if (!Array.isArray(children)) return ''
+
+  const parts: string[] = []
+  for (const node of children) {
+    if (node && typeof node === 'object') {
+      const n = node as Record<string, unknown>
+      if (typeof n.text === 'string') parts.push(n.text)
+      if (Array.isArray(n.children)) parts.push(extractTextFromRichText(n.children))
+    }
+  }
+  return parts.join('').trim()
+}
+
+const LEXICAL_HEADING_TAG_TO_MD: Record<string, string> = {
+  h1: '# ',
+  h2: '## ',
+  h3: '### ',
+  h4: '#### ',
+  h5: '##### ',
+  h6: '###### ',
+}
+
+/** Convert Payload Lexical rich text to Markdown so headings (e.g. H1) are preserved in preview. */
+function lexicalToMarkdown(value: unknown): string {
+  if (value == null) return ''
+  if (typeof value === 'string') return value
+  if (typeof value !== 'object') return ''
+
+  const obj = value as Record<string, unknown>
+  const root = obj.root as Record<string, unknown> | undefined
+  const children = (root?.children ?? obj.children) as unknown[] | undefined
+  if (!Array.isArray(children)) return extractTextFromRichText(value)
+
+  const lines: string[] = []
+  for (const node of children) {
+    if (!node || typeof node !== 'object') continue
+    const n = node as Record<string, unknown>
+    const type = String(n.type ?? '').toLowerCase()
+    const tag = String(n.tag ?? '').toLowerCase()
+    const level = n.level as number | undefined
+    let prefix = LEXICAL_HEADING_TAG_TO_MD[tag]
+    if (!prefix && type === 'heading' && typeof level === 'number' && level >= 1 && level <= 6) {
+      prefix = '#'.repeat(level) + ' '
+    }
+    const text = Array.isArray(n.children) ? textFromChildren(n.children).trim() : ''
+    if (prefix) {
+      lines.push((lines.length ? '\n\n' : '') + prefix + text)
+    } else if (text) {
+      lines.push((lines.length ? '\n\n' : '') + text)
+    }
+  }
+  return lines.join('').trim()
+}
+
+/** Normalize message block so UI has messageText. Payload may send content as string or Lexical object in `message`. */
+function normalizeMessageBlock(block: FormFieldBlock): FormFieldBlock {
+  if (block.blockType !== 'message') return block
+  const b = block as FormFieldBlock & { message?: unknown; messageText?: string }
+  let text = b.messageText ?? ''
+  if (b.message !== undefined && b.message !== null) {
+    text = typeof b.message === 'string' ? b.message : (lexicalToMarkdown(b.message) || text)
+  }
+  return { ...block, messageText: text } as FormFieldBlock
+}
+
 export function ensureBuilderFields(fields: FormFieldBlock[]): FormFieldBlock[] {
-  return fields.map((field) => ensureBlockId(field))
+  return fields.map((field) => normalizeMessageBlock(ensureBlockId(field)))
 }
 
 export function mergeSavedFields(savedFields: FormFieldBlock[], currentFields: FormFieldBlock[]): FormFieldBlock[] {
