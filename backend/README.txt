@@ -1,0 +1,1 @@
+Express backend. From project root: npm run dev:backend. Copy backend/.env.example to backend/.env and set OPENAI_API_KEY; optionally OPENAI_MAX_TOKENS (default 2048). In frontend/.env set VITE_AI_CONVERT_URL=http://localhost:3456/api/convert-email-to-html.

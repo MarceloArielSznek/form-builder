@@ -271,6 +271,35 @@
   border-top: 1px solid var(--border);
 }
 
+.form-editor__tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem 0;
+  flex-shrink: 0;
+}
+
+.form-editor__tab {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  cursor: pointer;
+}
+
+.form-editor__tab:hover {
+  color: var(--text-h);
+  background: var(--surface-subtle);
+}
+
+.form-editor__tab--active {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
 .form-editor__body {
   flex: 1;
   display: grid;
@@ -278,6 +307,11 @@
   gap: 0.9rem;
   min-height: 0;
   overflow: hidden;
+}
+
+.form-editor__body--full {
+  display: block;
+  overflow-y: auto;
 }
 
 .form-editor__fields,

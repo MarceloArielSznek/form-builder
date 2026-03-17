@@ -119,8 +119,8 @@ const LEXICAL_HEADING_TAG_TO_MD: Record<string, string> = {
   h6: '###### ',
 }
 
-/** Convert Payload Lexical rich text to Markdown so headings (e.g. H1) are preserved in preview. */
-function lexicalToMarkdown(value: unknown): string {
+/** Convert Payload Lexical rich text to Markdown. Exported for form-level confirmation and email bodies. */
+export function richTextToMarkdown(value: unknown): string {
   if (value == null) return ''
   if (typeof value === 'string') return value
   if (typeof value !== 'object') return ''
@@ -157,7 +157,7 @@ function normalizeMessageBlock(block: FormFieldBlock): FormFieldBlock {
   const b = block as FormFieldBlock & { message?: unknown; messageText?: string }
   let text = b.messageText ?? ''
   if (b.message !== undefined && b.message !== null) {
-    text = typeof b.message === 'string' ? b.message : (lexicalToMarkdown(b.message) || text)
+    text = typeof b.message === 'string' ? b.message : (richTextToMarkdown(b.message) || text)
   }
   return { ...block, messageText: text } as FormFieldBlock
 }

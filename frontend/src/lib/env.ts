@@ -19,9 +19,13 @@ export const payloadConfig = {
   },
   authSlug: getOptionalEnv('VITE_PAYLOAD_AUTH_SLUG', 'users'),
   formsSlug: getOptionalEnv('VITE_PAYLOAD_FORMS_SLUG', 'forms'),
+  branchesSlug: getOptionalEnv('VITE_PAYLOAD_BRANCHES_SLUG', 'branches'),
+  formCategoriesSlug: getOptionalEnv('VITE_PAYLOAD_FORM_CATEGORIES_SLUG', 'form-categories'),
   adminEmail: getOptionalEnv('VITE_PAYLOAD_ADMIN_EMAIL'),
   adminPassword: getOptionalEnv('VITE_PAYLOAD_ADMIN_PASSWORD'),
   hasAutoLoginCredentials: Boolean(
     getOptionalEnv('VITE_PAYLOAD_ADMIN_EMAIL') && getOptionalEnv('VITE_PAYLOAD_ADMIN_PASSWORD'),
   ),
+  /** Optional: URL for AI convert-to-HTML endpoint (POST { message } => { html }). */
+  aiConvertUrl: getOptionalEnv('VITE_AI_CONVERT_URL'),
 }

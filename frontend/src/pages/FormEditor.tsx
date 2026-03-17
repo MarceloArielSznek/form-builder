@@ -6,8 +6,11 @@ import FieldPaletteStrip, { DRAG_TYPE } from '../components/FieldPaletteStrip'
 import BlockCard from '../components/BlockCard'
 import FieldPropsPanel from '../components/FieldPropsPanel'
 import FormPreview from '../components/FormPreview'
+import PostSubmissionPanel from '../components/PostSubmissionPanel'
 import type { FormFieldBlockType } from '../types/payload'
 import './FormEditor.css'
+
+type EditorStep = 'build' | 'postSubmission'
 
 interface FormEditorProps {
   formId: string | null
@@ -40,8 +43,10 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
     moveBlockToIndex,
     save,
     setSelectedFieldId,
+    updateFormMeta,
   } = useFormEditor(formId)
   const { confirmNavigation, setDirty } = useUnsavedChanges()
+  const [editorStep, setEditorStep] = useState<EditorStep>('build')
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null)
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [showIssuesPopover, setShowIssuesPopover] = useState(false)
@@ -236,6 +241,27 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
         </div>
       ) : null}
 
+      <div className="form-editor__tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={editorStep === 'build'}
+          className={`form-editor__tab ${editorStep === 'build' ? 'form-editor__tab--active' : ''}`}
+          onClick={() => setEditorStep('build')}
+        >
+          Build form
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={editorStep === 'postSubmission'}
+          className={`form-editor__tab ${editorStep === 'postSubmission' ? 'form-editor__tab--active' : ''}`}
+          onClick={() => setEditorStep('postSubmission')}
+        >
+          Post-submission
+        </button>
+      </div>
+
       {showReviewModal ? (
         <div
           className="form-editor__modal-overlay"
@@ -288,6 +314,13 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
         </div>
       ) : null}
 
+      {editorStep === 'postSubmission' ? (
+        <div className="form-editor__body form-editor__body--full">
+          {form ? (
+            <PostSubmissionPanel form={form} onUpdate={updateFormMeta} />
+          ) : null}
+        </div>
+      ) : (
       <div className="form-editor__body">
         <section className="form-editor__fields">
           <div className="form-editor__section-head">
@@ -389,10 +422,13 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
           )}
         </aside>
       </div>
+      )}
 
-      <div className="form-editor__palette-wrap">
-        <FieldPaletteStrip />
-      </div>
+      {editorStep === 'build' && (
+        <div className="form-editor__palette-wrap">
+          <FieldPaletteStrip />
+        </div>
+      )}
     </div>
   )
 }

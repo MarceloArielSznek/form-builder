@@ -5,30 +5,58 @@ import {
   ensureBuilderFields,
   fieldsForPayload,
   mergeSavedFields,
+  richTextToMarkdown,
 } from '../lib/fieldBlocks'
 import { validateForm } from '../lib/formValidation'
-import type { Form, FormFieldBlock, FormFieldBlockType } from '../types/payload'
+import type { Form, FormEmail, FormFieldBlock, FormFieldBlockType } from '../types/payload'
 
 interface SaveFeedback {
   tone: 'success' | 'danger'
   message: string
 }
 
-function serializeForm(form: Form | null): string {
-  if (!form) {
-    return ''
-  }
+function normalizeEmail(email: FormEmail): FormEmail {
+  const msg = email.message
+  const text =
+    email.messageText ??
+    (msg != null && typeof msg === 'string' ? msg : msg != null ? richTextToMarkdown(msg) : '')
+  return { ...email, messageText: text }
+}
 
+function serializeForm(form: Form | null): string {
+  if (!form) return ''
   return JSON.stringify({
     title: form.title ?? '',
     fields: Array.isArray(form.fields) ? form.fields : [],
+    submitButtonLabel: form.submitButtonLabel,
+    confirmationType: form.confirmationType,
+    confirmationMessageText: form.confirmationMessageText,
+    redirect: form.redirect,
+    emails: form.emails,
+    formCategory: form.formCategory,
+    branches: form.branches,
   })
 }
 
 function normalizeForm(form: Form): Form {
+  const fields = ensureBuilderFields(Array.isArray(form.fields) ? form.fields : [])
+  const emails = Array.isArray(form.emails)
+    ? form.emails.map(normalizeEmail)
+    : []
+  const confirmationMessage = form.confirmationMessage
+  const confirmationMessageText =
+    form.confirmationMessageText ??
+    (confirmationMessage != null && typeof confirmationMessage === 'string'
+      ? confirmationMessage
+      : confirmationMessage != null
+        ? richTextToMarkdown(confirmationMessage)
+        : '')
   return {
     ...form,
-    fields: ensureBuilderFields(Array.isArray(form.fields) ? form.fields : []),
+    fields,
+    emails,
+    confirmationMessageText,
+    redirect: form.redirect ?? { url: null },
   }
 }
 
@@ -221,32 +249,45 @@ export function useFormEditor(formId: string | null) {
   }, [isDirty])
 
   const save = useCallback(async () => {
-    if (!form || blockingIssueCount > 0) {
-      return null
-    }
+    if (!form || blockingIssueCount > 0) return null
 
     setSaving(true)
     setSaveFeedback(null)
-
     const payloadFields = fieldsForPayload(fields)
+
+    const emailPayload = (form.emails ?? []).map((e) => ({
+      ...e,
+      message: e.messageText ?? e.message,
+    }))
+
+    const payload = {
+      title: form.title ?? '',
+      fields: payloadFields,
+      submitButtonLabel: form.submitButtonLabel,
+      confirmationType: form.confirmationType ?? 'message',
+      confirmationMessage: form.confirmationMessageText ?? form.confirmationMessage,
+      redirect: form.redirect ?? { url: null },
+      emails: emailPayload,
+      formCategory: form.formCategory,
+      organization: form.organization,
+      branches: form.branches,
+    }
 
     try {
       const savedForm = form.id
-        ? await updateForm(form.id, { title: form.title, fields: payloadFields })
-        : await createForm({ title: form.title || 'Untitled form', fields: payloadFields })
+        ? await updateForm(form.id, payload)
+        : await createForm(payload)
 
       const nextForm = normalizeForm({
         ...savedForm,
         fields: mergeSavedFields(savedForm.fields ?? [], fields),
       })
-
       setForm(nextForm)
       snapshotRef.current = serializeForm(nextForm)
       setSaveFeedback({
         tone: 'success',
         message: form.id ? 'Changes saved to Payload.' : 'Form created and ready to keep editing.',
       })
-
       return savedForm.id
     } catch (error) {
       setSaveFeedback({
@@ -258,6 +299,10 @@ export function useFormEditor(formId: string | null) {
       setSaving(false)
     }
   }, [blockingIssueCount, fields, form])
+
+  const updateFormMeta = useCallback((patch: Partial<Form>) => {
+    setForm((prev) => (prev ? { ...prev, ...patch } : null))
+  }, [])
 
   return {
     form,
@@ -275,6 +320,7 @@ export function useFormEditor(formId: string | null) {
     isDirty,
     loadForm,
     updateTitle,
+    updateFormMeta,
     addField,
     addFieldAt,
     updateBlock,

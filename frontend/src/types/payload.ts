@@ -188,12 +188,39 @@ export type FormFieldBlock =
   | ProjectMediaBlock
   | PageBreakBlock
 
+/** Single email sent after form submission (Payload form emails array). */
+export interface FormEmail {
+  id?: string
+  emailTo: string
+  emailFrom: string
+  subject: string
+  message?: unknown
+  messageText?: string
+  /** 'html' = body is HTML with {{fieldName}} placeholders; 'markdown' = Markdown (default). */
+  messageFormat?: 'markdown' | 'html'
+  cc?: string
+  bcc?: string
+  replyTo?: string
+}
+
+/** Redirect config after submission. */
+export interface FormRedirect {
+  url?: string | null
+}
+
 export interface Form {
   id: string
   title?: string
   fields?: FormFieldBlock[]
+  submitButtonLabel?: string
+  confirmationType?: 'message' | 'redirect'
   confirmationMessage?: unknown
-  redirect?: string | { id: string }
+  confirmationMessageText?: string
+  redirect?: FormRedirect | null
+  emails?: FormEmail[]
+  formCategory?: string
+  organization?: number
+  branches?: number[]
   createdAt?: string
   updatedAt?: string
 }
