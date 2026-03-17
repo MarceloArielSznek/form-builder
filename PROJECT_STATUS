@@ -1,0 +1,28 @@
+# Form Builder – Project Status
+
+## Stack
+- **Frontend:** React 18 + Vite 8 + TypeScript
+- **Backend:** None (client will call PayloadCMS API directly)
+- **Target:** PayloadCMS Form Builder plugin / forms collection
+
+## Current phase
+**Scaffold only.** Project and directory structure created. No Payload integration, auth, or form-builder logic implemented yet.
+
+## Directory structure
+```
+src/
+  api/        – Payload API client, auth, requests
+  components/– Reusable UI (form fields, builder blocks, etc.)
+  hooks/     – React hooks (auth, form state, etc.)
+  layouts/   – Page layouts
+  lib/       – Shared utilities
+  pages/     – Route-level views
+  store/     – Global state (if needed)
+  types/     – TypeScript types (Payload form schema, etc.)
+```
+
+## Next steps (not done yet)
+1. Payload auth (login, token storage)
+2. Forms API (list, get, create, update)
+3. Form builder UI (drag-and-drop, field config)
+4. Map builder schema ↔ Payload form document shape
