@@ -5,8 +5,16 @@
 - **Backend:** None (client will call PayloadCMS API directly)
 - **Target:** PayloadCMS Form Builder plugin / forms collection
 
+## Credentials (where to set them)
+- **Environment file:** Copy `.env.example` to `.env` in the project root. Set:
+  - `VITE_PAYLOAD_API_URL` – Payload API base URL (e.g. `http://localhost:3000`)
+  - `VITE_PAYLOAD_AUTH_SLUG` – Auth collection slug (usually `users`)
+  - Optionally `VITE_PAYLOAD_ADMIN_EMAIL` and `VITE_PAYLOAD_ADMIN_PASSWORD` to pre-fill the login form (local use only; leave empty to type in the app).
+- **In-app login:** Email and password can be entered in a login form; they are sent to Payload’s login endpoint and never stored. The returned JWT is stored in `sessionStorage` (see `src/api/auth.ts`).
+- `.env` is gitignored; do not commit credentials.
+
 ## Current phase
-**Scaffold only.** Project and directory structure created. No Payload integration, auth, or form-builder logic implemented yet.
+Form builder with live preview and pagination. List forms; create/edit with field palette and props panel; live app-style preview (modal layout, required asterisks, all field types); page-break block for preview pagination (Previous/Next); help text/description and message-as-section heading; fully customizable fields like Payload. Save filters out pageBreak so Payload only receives standard blocks.
 
 ## Directory structure
 ```
@@ -21,8 +29,10 @@ src/
   types/     – TypeScript types (Payload form schema, etc.)
 ```
 
-## Next steps (not done yet)
-1. Payload auth (login, token storage)
-2. Forms API (list, get, create, update)
-3. Form builder UI (drag-and-drop, field config)
-4. Map builder schema ↔ Payload form document shape
+## Next steps (optional)
+1. ~~Payload auth~~ done
+2. ~~Forms API (list, get, create, update)~~ done
+3. ~~Form builder UI (field palette, props panel, reorder)~~ done
+4. Confirm forms collection slug is `forms` (or set in api/forms.ts)
+5. If Payload uses a different key for the blocks array (e.g. not `fields`), map it in api/forms or types
+6. Conditional logic / branches if needed (Payload supports admin.condition per field; filterOptions on blocks)

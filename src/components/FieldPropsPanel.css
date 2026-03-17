@@ -1,0 +1,170 @@
+.field-props {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 1.1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.field-props__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.field-props__header-copy {
+  min-width: 0;
+}
+
+.field-props__type {
+  display: block;
+  font-weight: 700;
+  color: var(--text-h);
+  text-transform: capitalize;
+}
+
+.field-props__subtle {
+  margin-top: 0.3rem;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.field-props__remove {
+  min-height: 2.2rem;
+  padding-inline: 0.8rem;
+  color: var(--danger);
+  border-color: rgba(251, 146, 60, 0.18);
+  background: rgba(251, 146, 60, 0.08);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.field-props__group {
+  margin-bottom: 0.85rem;
+}
+
+.field-props__group:last-child {
+  margin-bottom: 0;
+}
+
+.field-props__group--row {
+  display: flex;
+  align-items: center;
+}
+
+.field-props__label {
+  display: block;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-h);
+  margin-bottom: 0.4rem;
+}
+
+.field-props__input,
+.field-props__select {
+  box-shadow: none;
+}
+
+.field-props__select {
+  max-width: 10rem;
+}
+
+.field-props__hint {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  margin: 0.45rem 0 0;
+  line-height: 1.45;
+}
+
+.field-props__checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--text-h);
+}
+
+.field-props__checkbox-label input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.field-props__options-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.55rem;
+}
+
+.field-props__btn-sm {
+  min-height: 2.15rem;
+  padding-inline: 0.8rem;
+  font-size: 0.8rem;
+}
+
+.field-props__options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-props__option-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.field-props__option-label {
+  min-width: 0;
+}
+
+.field-props__option-value {
+  min-width: 0;
+}
+
+.field-props__btn-remove-opt {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-soft);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.field-props__btn-remove-opt:hover {
+  background: var(--bg-muted);
+  color: var(--text-h);
+}
+
+.field-props__callout {
+  margin-bottom: 1rem;
+}
+
+.field-props__issues {
+  margin: 0.45rem 0 0;
+  padding-left: 1rem;
+  color: inherit;
+}
+
+@media (max-width: 1200px) {
+  .field-props__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .field-props__remove {
+    width: 100%;
+  }
+}

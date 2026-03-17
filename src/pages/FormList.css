@@ -1,0 +1,224 @@
+.form-list {
+  max-width: 84rem;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.form-list__hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at top right, rgba(109, 40, 217, 0.14), transparent 34%),
+    linear-gradient(180deg, var(--surface-strong) 0%, var(--surface-subtle) 100%);
+  box-shadow: var(--shadow);
+}
+
+.form-list__hero-copy {
+  max-width: 42rem;
+}
+
+.form-list__title {
+  max-width: 14ch;
+  margin-bottom: 0.85rem;
+}
+
+.form-list__subtitle {
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.form-list__hero-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.form-list__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-list__stat {
+  padding: 1.25rem;
+}
+
+.form-list__stat-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--text-soft);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.form-list__stat-value {
+  color: var(--text-h);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.form-list__panel {
+  padding: 1.5rem;
+}
+
+.form-list__panel-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-list__panel-title {
+  margin-bottom: 0.35rem;
+}
+
+.form-list__panel-copy {
+  color: var(--text);
+}
+
+.form-list__search {
+  width: min(100%, 20rem);
+}
+
+.form-list__state {
+  justify-content: space-between;
+}
+
+.form-list__state p {
+  margin-top: 0.35rem;
+}
+
+.form-list__empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 0.9rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-subtle);
+}
+
+.form-list__empty-state p {
+  max-width: 34rem;
+  color: var(--text);
+}
+
+.form-list__table-wrap {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+}
+
+.form-list__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.form-list__table th,
+.form-list__table td {
+  padding: 1rem 1.1rem;
+  text-align: left;
+}
+
+.form-list__table th {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.form-list__table td {
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.form-list__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.form-list__row:hover {
+  background: var(--bg-muted);
+}
+
+.form-list__row-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.form-list__row-title {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.form-list__row-id {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+}
+
+.form-list__row-actions {
+  text-align: right;
+}
+
+.form-list__btn-edit {
+  min-height: 2.4rem;
+  padding-inline: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .form-list {
+    padding: 1rem;
+  }
+
+  .form-list__hero,
+  .form-list__panel {
+    padding: 1.25rem;
+  }
+
+  .form-list__hero,
+  .form-list__panel-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-list__hero-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .form-list__hero-actions > * {
+    flex: 1;
+  }
+
+  .form-list__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .form-list__search {
+    width: 100%;
+  }
+
+  .form-list__table-wrap {
+    overflow-x: auto;
+  }
+}

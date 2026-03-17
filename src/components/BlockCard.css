@@ -1,0 +1,116 @@
+.block-card {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, var(--surface-strong) 0%, var(--surface-subtle) 100%);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.block-card:hover {
+  border-color: var(--accent-border);
+  background: var(--surface-subtle);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.block-card--selected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  box-shadow: 0 0 0 1px var(--accent-border), var(--shadow-sm);
+}
+
+.block-card__order {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.block-card__move {
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-soft);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.block-card__move:hover:not(:disabled) {
+  background: var(--bg-muted);
+  color: var(--text-h);
+}
+
+.block-card__move:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.block-card__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.block-card__main {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.block-card__type {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.block-card__label {
+  font-size: 13px;
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.block-card__name {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text-soft);
+  background: var(--code-bg);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.block-card--page-break .block-card__content {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.block-card__divider {
+  flex: 1;
+  height: 0;
+  border-top: 2px dashed var(--border-strong);
+  min-width: 24px;
+}
+
+.block-card--page-break .block-card__type {
+  flex-shrink: 0;
+}
