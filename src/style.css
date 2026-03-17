@@ -82,6 +82,36 @@
   box-sizing: border-box;
 }
 
+/* Visible scrollbars (Field properties, Builder, Preview, etc.) */
+* {
+  scrollbar-width: auto;
+  scrollbar-color: var(--border-strong) var(--surface-subtle);
+}
+
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--surface-subtle);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid var(--surface-subtle);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--text-soft);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--surface-subtle);
+}
+
 html,
 body,
 #app {

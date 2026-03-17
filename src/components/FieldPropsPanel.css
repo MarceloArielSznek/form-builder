@@ -1,7 +1,7 @@
 .field-props {
   background: var(--surface-strong);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 1rem;
   padding: 1.1rem;
   box-shadow: var(--shadow-sm);
 }
@@ -10,9 +10,9 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.9rem;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border);
 }
 
@@ -44,10 +44,37 @@
 }
 
 .field-props__group {
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.75rem;
 }
 
 .field-props__group:last-child {
+  margin-bottom: 0;
+}
+
+.field-props__callout {
+  margin-bottom: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.field-props__callout strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.8125rem;
+}
+
+.field-props__issues {
+  margin: 0.2rem 0 0;
+  padding-left: 0.9rem;
+  color: inherit;
+  line-height: 1.45;
+}
+
+.field-props__issues li {
+  margin-bottom: 0.15rem;
+}
+
+.field-props__issues li:last-child {
   margin-bottom: 0;
 }
 
@@ -146,16 +173,6 @@
 .field-props__btn-remove-opt:hover {
   background: var(--bg-muted);
   color: var(--text-h);
-}
-
-.field-props__callout {
-  margin-bottom: 1rem;
-}
-
-.field-props__issues {
-  margin: 0.45rem 0 0;
-  padding-left: 1rem;
-  color: inherit;
 }
 
 @media (max-width: 1200px) {

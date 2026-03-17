@@ -36,6 +36,8 @@ export function createEmptyBlock(type: FormFieldBlockType): FormFieldBlock {
       return { id, blockType: 'message', blockName, message: undefined }
     case 'payment':
       return { id, blockType: 'payment', blockName, name: '', label: '', required: false, width: '100', basePrice: 0, priceConditions: [] }
+    case 'projectMedia':
+      return { id, blockType: 'projectMedia', blockName, name: '', label: '', required: false, width: '100' }
     case 'pageBreak':
       return { id, blockType: 'pageBreak', blockName }
     default:
@@ -43,9 +45,14 @@ export function createEmptyBlock(type: FormFieldBlockType): FormFieldBlock {
   }
 }
 
-/** Fields to send to Payload (excludes builder-only blocks like pageBreak). */
+/** Block types that Payload accepts. Others are builder-only or legacy. */
+const PAYLOAD_BLOCK_TYPES = new Set([
+  'text', 'textarea', 'email', 'number', 'checkbox', 'select', 'radio', 'date', 'message', 'projectMedia',
+])
+
+/** Fields to send to Payload (only block types that Payload supports). */
 export function fieldsForPayload(fields: FormFieldBlock[]): FormFieldBlock[] {
-  return fields.filter((b) => b.blockType !== 'pageBreak')
+  return fields.filter((b) => PAYLOAD_BLOCK_TYPES.has(b.blockType))
 }
 
 export function ensureBlockId<T extends FormFieldBlock>(block: T): T {
@@ -94,6 +101,7 @@ export function mergeSavedFields(savedFields: FormFieldBlock[], currentFields: F
 
 export function getBlockLabel(block: FormFieldBlock): string {
   if (block.blockType === 'pageBreak') return 'Page break'
+  if (block.blockType === 'projectMedia') return (block as { label?: string }).label || 'Project Media'
   if (block.blockName?.trim()) return block.blockName
   if ('label' in block && block.label) return block.label
   if ('name' in block && block.name) return block.name

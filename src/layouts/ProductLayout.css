@@ -1,7 +1,9 @@
 .product-layout {
-  min-height: 100svh;
+  height: 100svh;
+  max-height: 100svh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .product-layout__topbar {
@@ -88,6 +90,8 @@
 .product-layout__content {
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 @media (max-width: 900px) {

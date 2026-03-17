@@ -66,6 +66,9 @@ function App() {
     setAuthError(null)
   }, [])
 
+  const hasEnvCredentials = payloadConfig.hasAutoLoginCredentials
+  const defaultUnauthenticatedPath = hasEnvCredentials ? '/forms' : '/login'
+
   return (
     <BrowserRouter>
       <UnsavedChangesProvider>
@@ -76,6 +79,8 @@ function App() {
               element={
                 authStatus === 'authenticated' ? (
                   <Navigate to="/forms" replace />
+                ) : hasEnvCredentials ? (
+                  <Navigate to={defaultUnauthenticatedPath} replace />
                 ) : authStatus === 'booting' ? (
                   <AppStatusScreen
                     eyebrow="Initializing"
@@ -100,6 +105,7 @@ function App() {
                   authStatus={authStatus}
                   authBusy={authBusy}
                   authError={authError}
+                  hasEnvCredentials={hasEnvCredentials}
                   onRetry={bootstrapAuth}
                   onLogout={handleLogout}
                 />
@@ -113,7 +119,12 @@ function App() {
 
             <Route
               path="*"
-              element={<Navigate to={authStatus === 'authenticated' ? '/forms' : '/login'} replace />}
+              element={
+                <Navigate
+                  to={authStatus === 'authenticated' ? '/forms' : defaultUnauthenticatedPath}
+                  replace
+                />
+              }
             />
           </Routes>
         </div>
@@ -126,6 +137,7 @@ interface ProtectedLayoutProps {
   authStatus: AuthStatus
   authBusy: boolean
   authError: string | null
+  hasEnvCredentials: boolean
   onRetry: () => Promise<void>
   onLogout: () => void
 }
@@ -134,6 +146,7 @@ function ProtectedLayout({
   authStatus,
   authBusy,
   authError,
+  hasEnvCredentials,
   onRetry,
   onLogout,
 }: ProtectedLayoutProps) {
@@ -148,6 +161,28 @@ function ProtectedLayout({
   }
 
   if (authStatus !== 'authenticated') {
+    if (hasEnvCredentials) {
+      const isNetworkError =
+        authError === 'Failed to fetch' ||
+        authError?.toLowerCase().includes('network') ||
+        authError?.toLowerCase().includes('fetch')
+      const hint = isNetworkError
+        ? 'In dev the app proxies to VITE_PAYLOAD_API_URL. Ensure Payload is running at that URL and that /api/users/login is reachable. Open the browser console to see the exact request URL.'
+        : authError ?? 'Check VITE_PAYLOAD_API_URL and your credentials in .env.'
+      return (
+        <AppStatusScreen
+          eyebrow="Connection failed"
+          title="Could not connect to Payload"
+          description={hint}
+          tone="danger"
+          actions={
+            <button type="button" className="app-button" onClick={() => void onRetry()}>
+              Retry
+            </button>
+          }
+        />
+      )
+    }
     return <Navigate to="/login" replace />
   }
 

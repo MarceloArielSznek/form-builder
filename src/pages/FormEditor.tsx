@@ -1,10 +1,12 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useFormEditor } from '../hooks/useFormEditor'
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges'
 import FieldPalette from '../components/FieldPalette'
+import FieldPaletteStrip, { DRAG_TYPE } from '../components/FieldPaletteStrip'
 import BlockCard from '../components/BlockCard'
 import FieldPropsPanel from '../components/FieldPropsPanel'
 import FormPreview from '../components/FormPreview'
+import type { FormFieldBlockType } from '../types/payload'
 import './FormEditor.css'
 
 interface FormEditorProps {
@@ -31,20 +33,57 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
     loadForm,
     updateTitle,
     addField,
+    addFieldAt,
     updateBlock,
     removeBlock,
     moveBlock,
+    moveBlockToIndex,
     save,
     setSelectedFieldId,
   } = useFormEditor(formId)
   const { confirmNavigation, setDirty } = useUnsavedChanges()
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null)
+  const [showReviewModal, setShowReviewModal] = useState(false)
+  const [showIssuesPopover, setShowIssuesPopover] = useState(false)
 
-  const issuePreview = useMemo(() => validationIssues.slice(0, 3), [validationIssues])
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    if (!e.dataTransfer.types.includes(DRAG_TYPE)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+    setDropTargetIndex(index)
+  }
+
+  const handleDragLeave = () => {
+    setDropTargetIndex(null)
+  }
+
+  const handleDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    setDropTargetIndex(null)
+    const type = e.dataTransfer.getData(DRAG_TYPE) as FormFieldBlockType | ''
+    if (!type) return
+    addFieldAt(type, index)
+  }
 
   useEffect(() => {
     setDirty(isDirty)
     return () => setDirty(false)
   }, [isDirty, setDirty])
+
+  useEffect(() => {
+    const clearDropTarget = () => setDropTargetIndex(null)
+    document.addEventListener('dragend', clearDropTarget)
+    return () => document.removeEventListener('dragend', clearDropTarget)
+  }, [])
+
+  useEffect(() => {
+    if (!showReviewModal) return
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowReviewModal(false)
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [showReviewModal])
 
   const handleBack = () => {
     if (!confirmNavigation()) {
@@ -56,11 +95,24 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
   }
 
   const handleSave = async () => {
+    if (blockingIssueCount > 0) {
+      setShowReviewModal(true)
+      return
+    }
     const savedId = await save()
     if (savedId) {
       onSaved(savedId)
     }
   }
+
+  const blockingIssues = useMemo(
+    () => validationIssues.filter((i) => i.severity === 'error'),
+    [validationIssues],
+  )
+  const warningIssues = useMemo(
+    () => validationIssues.filter((i) => i.severity === 'warning'),
+    [validationIssues],
+  )
 
   if (loading) {
     return (
@@ -98,19 +150,19 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
 
   return (
     <div className="form-editor">
-      <header className="form-editor__header">
+      <header className="form-editor__header" role="banner">
         <div className="form-editor__header-main">
-          <button type="button" className="app-button--ghost form-editor__back" onClick={handleBack}>
+          <button type="button" className="app-button--ghost form-editor__back" onClick={handleBack} aria-label="Back to forms list">
             Back to forms
           </button>
-
-          <div className="form-editor__title-wrap">
-            <div className="form-editor__meta">
-              <span className="app-pill">{form?.id ? 'Existing form' : 'Draft form'}</span>
-              <span className={`app-pill ${isDirty ? 'form-editor__status-pill--warning' : 'form-editor__status-pill--success'}`}>
-                {isDirty ? 'Unsaved changes' : 'Saved'}
-              </span>
-            </div>
+          <span className="form-editor__header-divider" aria-hidden="true" />
+          <div className="form-editor__meta">
+            <span className="app-pill">{form?.id ? 'Existing form' : 'Draft form'}</span>
+            <span className={`app-pill ${isDirty ? 'form-editor__status-pill--warning' : 'form-editor__status-pill--success'}`}>
+              {isDirty ? 'Unsaved changes' : 'Saved'}
+            </span>
+          </div>
+          <div className="form-editor__title-row">
             <input
               type="text"
               className="app-input form-editor__title"
@@ -122,19 +174,56 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
             <span className="form-editor__id">{form?.id ? `ID: ${form.id}` : 'New form'}</span>
           </div>
         </div>
-
         <div className="form-editor__header-actions">
-          <div className="form-editor__issue-summary" aria-live="polite">
-            <span className={`app-pill ${blockingIssueCount > 0 ? 'form-editor__status-pill--danger' : ''}`}>
-              {blockingIssueCount} errors
-            </span>
-            <span className="app-pill">{warningCount} warnings</span>
+          <div
+            className="form-editor__issue-summary-wrap"
+            onMouseEnter={() => (blockingIssueCount > 0 || warningCount > 0) && setShowIssuesPopover(true)}
+            onMouseLeave={() => setShowIssuesPopover(false)}
+          >
+            <div className="form-editor__issue-summary" aria-live="polite">
+              <span className={`app-pill ${blockingIssueCount > 0 ? 'form-editor__status-pill--danger' : ''}`}>
+                {blockingIssueCount} errors
+              </span>
+              <span className="app-pill">{warningCount} warnings</span>
+            </div>
+            {showIssuesPopover && (blockingIssueCount > 0 || warningCount > 0) && (
+              <div className="form-editor__issues-popover" role="tooltip">
+                {blockingIssues.length > 0 ? (
+                  <div className="form-editor__issues-popover-section">
+                    <strong className="form-editor__issues-popover-title form-editor__issues-popover-title--error">
+                      Errors ({blockingIssues.length})
+                    </strong>
+                    <ul className="form-editor__issues-popover-list">
+                      {blockingIssues.map((issue, i) => (
+                        <li key={`e-${i}`}>
+                          <strong>{issue.title}:</strong> {issue.detail}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {warningIssues.length > 0 ? (
+                  <div className="form-editor__issues-popover-section">
+                    <strong className="form-editor__issues-popover-title form-editor__issues-popover-title--warning">
+                      Warnings ({warningIssues.length})
+                    </strong>
+                    <ul className="form-editor__issues-popover-list">
+                      {warningIssues.map((issue, i) => (
+                        <li key={`w-${i}`}>
+                          <strong>{issue.title}:</strong> {issue.detail}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
           <button
             type="button"
             className="app-button form-editor__save"
             onClick={handleSave}
-            disabled={saving || blockingIssueCount > 0}
+            disabled={saving}
           >
             {saving ? 'Saving…' : form?.id ? 'Save changes' : 'Create form'}
           </button>
@@ -147,17 +236,54 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
         </div>
       ) : null}
 
-      {issuePreview.length > 0 ? (
-        <div className="app-banner--warning form-editor__banner">
-          <div>
-            <strong>Review before saving</strong>
-            <ul className="form-editor__issue-list">
-              {issuePreview.map((issue, index) => (
-                <li key={`${issue.title}-${index}`}>
-                  <span>{issue.title}:</span> {issue.detail}
-                </li>
-              ))}
-            </ul>
+      {showReviewModal ? (
+        <div
+          className="form-editor__modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="review-modal-title"
+          onClick={() => setShowReviewModal(false)}
+        >
+          <div
+            className="form-editor__modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="review-modal-title" className="form-editor__modal-title">
+              Review before saving
+            </h2>
+            <p className="form-editor__modal-copy">
+              Fix the following to save your form:
+            </p>
+            {blockingIssues.length > 0 ? (
+              <ul className="form-editor__modal-list form-editor__modal-list--error">
+                {blockingIssues.map((issue, index) => (
+                  <li key={`${issue.title}-${index}`}>
+                    <strong>{issue.title}:</strong> {issue.detail}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {warningIssues.length > 0 ? (
+              <>
+                <p className="form-editor__modal-sub">Warnings (optional):</p>
+                <ul className="form-editor__modal-list form-editor__modal-list--warning">
+                  {warningIssues.map((issue, index) => (
+                    <li key={`w-${issue.title}-${index}`}>
+                      <strong>{issue.title}:</strong> {issue.detail}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            <div className="form-editor__modal-actions">
+              <button
+                type="button"
+                className="app-button"
+                onClick={() => setShowReviewModal(false)}
+              >
+                Back to form
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
@@ -176,27 +302,49 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
 
           <div className="form-editor__list">
             {fields.length === 0 ? (
-              <div className="form-editor__empty">
-                <h3>Start building your form</h3>
-                <p>Add inputs, messages, and page breaks to shape the full experience.</p>
-                <button type="button" className="app-button" onClick={() => addField('text')}>
-                  Add first field
-                </button>
+              <div
+                className={`form-editor__drop-zone ${dropTargetIndex === 0 ? 'form-editor__drop-zone--active' : ''}`}
+                onDragOver={(e) => handleDragOver(e, 0)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, 0)}
+              >
+                <div className="form-editor__empty">
+                  <h3>Start building your form</h3>
+                  <p>Add inputs, messages, and page breaks — or drag a field from below.</p>
+                  <button type="button" className="app-button" onClick={() => addField('text')}>
+                    Add first field
+                  </button>
+                </div>
               </div>
             ) : (
-              fields.map((block, i) => (
-                <BlockCard
-                  key={block.id ?? i}
-                  block={block}
-                  fieldId={block.id ?? String(i)}
-                  index={i}
-                  totalBlocks={fields.length}
-                  isSelected={selectedFieldId === block.id}
-                  onSelect={() => setSelectedFieldId(block.id ?? null)}
-                  onMoveUp={() => moveBlock(block.id ?? '', -1)}
-                  onMoveDown={() => moveBlock(block.id ?? '', 1)}
+              <>
+                {fields.flatMap((block, i) => [
+                  <div
+                    key={`drop-${i}`}
+                    className={`form-editor__drop-slot ${dropTargetIndex === i ? 'form-editor__drop-slot--active' : ''}`}
+                    onDragOver={(e) => handleDragOver(e, i)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, i)}
+                  />,
+                  <BlockCard
+                    key={block.id ?? i}
+                    block={block}
+                    fieldId={block.id ?? String(i)}
+                    index={i}
+                    totalBlocks={fields.length}
+                    isSelected={selectedFieldId === block.id}
+                    onSelect={() => setSelectedFieldId(block.id ?? null)}
+                    onMoveUp={() => moveBlock(block.id ?? '', -1)}
+                    onMoveDown={() => moveBlock(block.id ?? '', 1)}
+                  />,
+                ])}
+                <div
+                  className={`form-editor__drop-slot ${dropTargetIndex === fields.length ? 'form-editor__drop-slot--active' : ''}`}
+                  onDragOver={(e) => handleDragOver(e, fields.length)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, fields.length)}
                 />
-              ))
+              </>
             )}
           </div>
         </section>
@@ -208,7 +356,13 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
               <p className="form-editor__section-copy">See how the current form structure reads for the end user.</p>
             </div>
           </div>
-          <FormPreview form={form} className="form-editor__preview-inner" selectedFieldId={selectedFieldId} />
+          <FormPreview
+            form={form}
+            className="form-editor__preview-inner"
+            selectedFieldId={selectedFieldId}
+            onReorder={moveBlockToIndex}
+            onAddFieldAt={addFieldAt}
+          />
         </section>
 
         <aside className="form-editor__sidebar">
@@ -234,6 +388,10 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
             </div>
           )}
         </aside>
+      </div>
+
+      <div className="form-editor__palette-wrap">
+        <FieldPaletteStrip />
       </div>
     </div>
   )

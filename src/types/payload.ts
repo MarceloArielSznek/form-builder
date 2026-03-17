@@ -16,6 +16,7 @@ export type FormFieldBlockType =
   | 'date'
   | 'message'
   | 'payment'
+  | 'projectMedia'
   | 'pageBreak'  // builder-only: splits preview into pages; not sent to Payload
 
 export type WidthOption = '25' | '50' | '75' | '100'
@@ -163,6 +164,14 @@ export interface PaymentBlock extends FormFieldBlockBase {
   priceConditions?: PriceCondition[]
 }
 
+export interface ProjectMediaBlock extends FormFieldBlockBase {
+  blockType: 'projectMedia'
+  name: string
+  label: string
+  width?: WidthOption
+  required?: boolean
+}
+
 export type FormFieldBlock =
   | TextBlock
   | TextareaBlock
@@ -176,6 +185,7 @@ export type FormFieldBlock =
   | DateBlock
   | MessageBlock
   | PaymentBlock
+  | ProjectMediaBlock
   | PageBreakBlock
 
 export interface Form {
@@ -188,20 +198,18 @@ export interface Form {
   updatedAt?: string
 }
 
+/** Field types offered in the UI — only those supported by Payload. */
 export const FORM_FIELD_TYPES: { value: FormFieldBlockType; label: string }[] = [
-  { value: 'text', label: 'Text' },
-  { value: 'textarea', label: 'Textarea' },
-  { value: 'email', label: 'Email' },
-  { value: 'number', label: 'Number' },
   { value: 'checkbox', label: 'Checkbox' },
+  { value: 'email', label: 'Email' },
+  { value: 'message', label: 'Message' },
+  { value: 'number', label: 'Number' },
   { value: 'select', label: 'Select' },
+  { value: 'text', label: 'Text' },
+  { value: 'textarea', label: 'Text Area' },
   { value: 'radio', label: 'Radio' },
   { value: 'date', label: 'Date' },
-  { value: 'country', label: 'Country' },
-  { value: 'state', label: 'State' },
-  { value: 'message', label: 'Message / Section' },
-  { value: 'payment', label: 'Payment' },
-  { value: 'pageBreak', label: 'Page break' },
+  { value: 'projectMedia', label: 'Project Media' },
 ]
 
 export const WIDTH_OPTIONS: { value: WidthOption; label: string }[] = [

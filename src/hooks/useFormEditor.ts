@@ -131,6 +131,17 @@ export function useFormEditor(formId: string | null) {
     [fields, setFields],
   )
 
+  const addFieldAt = useCallback(
+    (type: FormFieldBlockType, index: number) => {
+      const block = createEmptyBlock(type)
+      const nextFields = [...fields]
+      nextFields.splice(Math.max(0, index), 0, block)
+      setFields(nextFields)
+      setSelectedFieldId(block.id ?? null)
+    },
+    [fields, setFields],
+  )
+
   const updateBlock = useCallback(
     (fieldId: string, nextBlock: FormFieldBlock) => {
       setFields(fields.map((field) => (field.id === fieldId ? nextBlock : field)))
@@ -169,6 +180,21 @@ export function useFormEditor(formId: string | null) {
 
       const nextFields = fields.slice()
       ;[nextFields[index], nextFields[nextIndex]] = [nextFields[nextIndex], nextFields[index]]
+      setFields(nextFields)
+      setSelectedFieldId(fieldId)
+    },
+    [fields, setFields],
+  )
+
+  const moveBlockToIndex = useCallback(
+    (fieldId: string, toIndex: number) => {
+      const fromIndex = fields.findIndex((f) => f.id === fieldId)
+      if (fromIndex < 0) return
+      const targetIndex = Math.max(0, Math.min(toIndex, fields.length - 1))
+      if (fromIndex === targetIndex) return
+      const nextFields = fields.slice()
+      const [removed] = nextFields.splice(fromIndex, 1)
+      nextFields.splice(targetIndex, 0, removed)
       setFields(nextFields)
       setSelectedFieldId(fieldId)
     },
@@ -250,9 +276,11 @@ export function useFormEditor(formId: string | null) {
     loadForm,
     updateTitle,
     addField,
+    addFieldAt,
     updateBlock,
     removeBlock,
     moveBlock,
+    moveBlockToIndex,
     save,
     setSelectedFieldId,
   }

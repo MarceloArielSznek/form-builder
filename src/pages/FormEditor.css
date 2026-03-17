@@ -3,8 +3,9 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.15rem;
-  padding: 1.1rem 1.2rem 1.2rem;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem 0.85rem;
+  overflow: hidden;
 }
 
 .form-editor--state {
@@ -18,55 +19,145 @@
   padding: 2rem;
 }
 
+/* Header: single-row toolbar */
 .form-editor__header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.15rem 1.25rem;
+  min-height: 3.25rem;
+  padding: 0.5rem 1rem;
   border: 1px solid var(--border);
-  border-radius: 1.5rem;
+  border-radius: 0.9rem;
   background: var(--surface);
   backdrop-filter: blur(14px);
   box-shadow: var(--shadow-sm);
 }
 
-.form-editor__header-main,
-.form-editor__header-actions {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-}
-
 .form-editor__header-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.form-editor__title-wrap {
+.form-editor__back {
+  flex-shrink: 0;
+}
+
+.form-editor__header-divider {
+  width: 1px;
+  height: 1.5rem;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.form-editor__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.form-editor__title-row {
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .form-editor__title {
-  min-height: 3.25rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.form-editor__meta,
-.form-editor__issue-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
+  flex: 1;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
 }
 
 .form-editor__id {
+  flex-shrink: 0;
   color: var(--text-soft);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.form-editor__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.form-editor__issue-summary-wrap {
+  position: relative;
+}
+
+.form-editor__issue-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-editor__issues-popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.4rem;
+  min-width: 280px;
+  max-width: 360px;
+  max-height: min(70vh, 320px);
+  padding: 0.75rem;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  box-shadow: var(--shadow);
+  z-index: 200;
+  overflow-y: auto;
+}
+
+.form-editor__issues-popover-section {
+  display: block;
+}
+
+.form-editor__issues-popover-section + .form-editor__issues-popover-section {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.form-editor__issues-popover-title {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.4rem;
+}
+
+.form-editor__issues-popover-title--error {
+  color: var(--danger);
+}
+
+.form-editor__issues-popover-title--warning {
+  color: var(--warning);
+}
+
+.form-editor__issues-popover-list {
+  margin: 0;
+  padding-left: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-h);
+}
+
+.form-editor__issues-popover-list li {
+  margin-bottom: 0.3rem;
+}
+
+.form-editor__issues-popover-list li:last-child {
+  margin-bottom: 0;
 }
 
 .form-editor__status-pill--success {
@@ -91,6 +182,14 @@
 
 .form-editor__banner {
   flex-shrink: 0;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.9rem;
+}
+
+.form-editor__banner .form-editor__issue-list {
+  margin: 0.2rem 0 0;
+  padding-left: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .form-editor__issue-list {
@@ -98,12 +197,87 @@
   padding-left: 1rem;
 }
 
+/* Review modal */
+.form-editor__modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.form-editor__modal {
+  width: 100%;
+  max-width: 26rem;
+  max-height: 85vh;
+  padding: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow);
+  overflow-y: auto;
+}
+
+.form-editor__modal-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.form-editor__modal-copy {
+  margin: 0 0 0.85rem;
+  font-size: 0.9rem;
+  color: var(--text-soft);
+}
+
+.form-editor__modal-sub {
+  margin: 1rem 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.form-editor__modal-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.form-editor__modal-list--error {
+  color: var(--danger);
+}
+
+.form-editor__modal-list--error li {
+  margin-bottom: 0.35rem;
+}
+
+.form-editor__modal-list--warning {
+  color: var(--warning);
+}
+
+.form-editor__modal-list--warning li {
+  margin-bottom: 0.35rem;
+}
+
+.form-editor__modal-actions {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
 .form-editor__body {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(250px, 290px) minmax(720px, 1.7fr) minmax(320px, 380px);
-  gap: 1.15rem;
+  grid-template-columns: 28fr 40fr 32fr;
+  gap: 0.9rem;
   min-height: 0;
+  overflow: hidden;
 }
 
 .form-editor__fields,
@@ -145,8 +319,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.05rem;
+  gap: 0.75rem;
+  margin-bottom: 0.7rem;
   flex-shrink: 0;
 }
 
@@ -168,10 +342,33 @@
 .form-editor__list {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0;
   overflow-y: auto;
   padding-right: 0.2rem;
   min-height: 0;
+}
+
+.form-editor__drop-zone {
+  border-radius: 1.25rem;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-editor__drop-zone--active {
+  background: var(--accent-bg);
+  box-shadow: 0 0 0 2px var(--accent-border);
+}
+
+.form-editor__drop-slot {
+  min-height: 0.5rem;
+  margin: 0.2rem 0;
+  border-radius: 0.5rem;
+  transition: background-color 0.15s ease, min-height 0.15s ease;
+}
+
+.form-editor__drop-slot--active {
+  min-height: 2rem;
+  background: var(--accent-bg);
+  box-shadow: inset 0 0 0 2px var(--accent-border);
 }
 
 .form-editor__empty {
@@ -186,12 +383,51 @@
   border-radius: 1.25rem;
 }
 
+.form-editor__drop-zone .form-editor__empty {
+  border-color: transparent;
+}
+
+.form-editor__drop-zone--active .form-editor__empty {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.form-editor__palette-wrap {
+  flex-shrink: 0;
+  width: 100%;
+}
+
 .form-editor__preview-inner {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.form-editor__preview-inner .form-preview {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  align-items: stretch;
+}
+
+.form-editor__preview-inner .form-preview__modal {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+
+.form-editor__preview-inner .form-preview__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .form-editor__preview::before {
@@ -207,6 +443,14 @@
   pointer-events: none;
 }
 
+.form-editor__sidebar .field-props {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
+}
+
 .form-editor__sidebar-placeholder {
   display: grid;
   gap: 0.5rem;
@@ -220,7 +464,7 @@
 
 @media (max-width: 1200px) {
   .form-editor__body {
-    grid-template-columns: minmax(235px, 255px) minmax(520px, 1.5fr) minmax(290px, 330px);
+    grid-template-columns: 28fr 40fr 32fr;
   }
 }
 
@@ -229,9 +473,33 @@
     padding: 0.75rem;
   }
 
-  .form-editor__header,
-  .form-editor__header-main,
-  .form-editor__header-actions,
+  .form-editor__header {
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 0;
+    gap: 1rem;
+  }
+
+  .form-editor__header-main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .form-editor__header-divider {
+    width: 100%;
+    height: 1px;
+  }
+
+  .form-editor__title-row {
+    flex-wrap: wrap;
+  }
+
+  .form-editor__header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .form-editor__body,
   .form-editor__section-head {
     flex-direction: column;

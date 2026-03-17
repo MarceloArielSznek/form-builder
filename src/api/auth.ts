@@ -36,6 +36,11 @@ export async function login(email: string, password: string): Promise<LoginResul
     return { ok: true, token, exp, user }
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Network error'
+    const cause = e instanceof Error && e.cause instanceof Error ? e.cause.message : ''
+    const detail = cause ? `${message} (${cause})` : message
+    if (typeof window !== 'undefined') {
+      console.error('[Payload login] Request URL:', url, 'Error:', detail)
+    }
     return { ok: false, error: message }
   }
 }

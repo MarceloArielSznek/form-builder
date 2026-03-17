@@ -1,12 +1,17 @@
 import { memo, useEffect, useMemo, useState } from 'react'
-import type { Form, FormFieldBlock } from '../types/payload'
+import type { Form, FormFieldBlock, FormFieldBlockType } from '../types/payload'
 import { hasOptions } from '../lib/fieldBlocks'
+import { DRAG_TYPE } from './FieldPaletteStrip'
 import './FormPreview.css'
+
+const DRAG_FIELD_ID = 'application/x-form-field-id'
 
 interface FormPreviewProps {
   form: Form | null
   className?: string
   selectedFieldId?: string | null
+  onReorder?: (fieldId: string, toIndex: number) => void
+  onAddFieldAt?: (type: FormFieldBlockType, index: number) => void
 }
 
 function splitByPageBreak(fields: FormFieldBlock[]): FormFieldBlock[][] {
@@ -197,18 +202,75 @@ const PreviewField = memo(function PreviewField({ block }: { block: FormFieldBlo
           <div className="preview-payment">Payment field (configured in form)</div>
         </div>
       )
+    case 'projectMedia':
+      return (
+        <div className={`preview-field ${widthClass}`}>
+          {labelEl}
+          {descEl}
+          <div className="preview-payment">Project media (upload in form)</div>
+        </div>
+      )
     default:
       return null
   }
 })
 
-function FormPreview({ form, className = '', selectedFieldId }: FormPreviewProps) {
+function getPageStartGlobalIndex(fields: FormFieldBlock[], pageIndex: number): number {
+  if (pageIndex <= 0) return 0
+  let count = 0
+  for (let i = 0; i < fields.length; i++) {
+    if (fields[i].blockType === 'pageBreak') {
+      count++
+      if (count >= pageIndex) return i + 1
+    }
+  }
+  return fields.length
+}
+
+function FormPreview({ form, className = '', selectedFieldId, onReorder, onAddFieldAt }: FormPreviewProps) {
   const fields = Array.isArray(form?.fields) ? form.fields : []
   const pages = useMemo(() => splitByPageBreak(fields), [fields])
   const [pageIndex, setPageIndex] = useState(0)
+  const [previewDropIndex, setPreviewDropIndex] = useState<number | null>(null)
   const totalPages = Math.max(1, pages.length)
   const currentPage = Math.min(pageIndex, totalPages - 1)
   const pageFields = pages[currentPage] ?? []
+
+  const pageGlobalIndices = useMemo(
+    () => pageFields.map((b) => fields.findIndex((f) => f.id === b.id)).filter((i) => i >= 0),
+    [fields, pageFields],
+  )
+
+  const canDrop = Boolean(onReorder || onAddFieldAt)
+
+  const handlePreviewDragOver = (e: React.DragEvent, globalIndex: number) => {
+    if (!canDrop) return
+    const isNewField = e.dataTransfer.types.includes(DRAG_TYPE)
+    const isReorder = e.dataTransfer.types.includes(DRAG_FIELD_ID)
+    if (isNewField || isReorder) {
+      e.preventDefault()
+      e.stopPropagation()
+      e.dataTransfer.dropEffect = isReorder ? 'move' : 'copy'
+      setPreviewDropIndex(globalIndex)
+    }
+  }
+
+  const handlePreviewDragLeave = () => setPreviewDropIndex(null)
+
+  const handlePreviewDrop = (e: React.DragEvent, globalIndex: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setPreviewDropIndex(null)
+    const fieldId = e.dataTransfer.getData(DRAG_FIELD_ID)
+    const type = e.dataTransfer.getData(DRAG_TYPE) as FormFieldBlockType | ''
+    if (fieldId && onReorder) {
+      onReorder(fieldId, globalIndex)
+      return
+    }
+    if (type && onAddFieldAt) {
+      onAddFieldAt(type, globalIndex)
+    }
+  }
 
   const title = form?.title || 'Form preview'
   const selectedPage = useMemo(() => {
@@ -229,6 +291,13 @@ function FormPreview({ form, className = '', selectedFieldId }: FormPreviewProps
     }
   }, [selectedPage])
 
+  useEffect(() => {
+    if (!canDrop) return
+    const clear = () => setPreviewDropIndex(null)
+    document.addEventListener('dragend', clear)
+    return () => document.removeEventListener('dragend', clear)
+  }, [canDrop])
+
   return (
     <div className={`form-preview ${className}`}>
       <div className="form-preview__modal">
@@ -239,14 +308,94 @@ function FormPreview({ form, className = '', selectedFieldId }: FormPreviewProps
           </div>
           <span className="app-pill">Preview mode</span>
         </div>
-        <div className="form-preview__body">
+        <div
+          className="form-preview__body"
+          onDragOver={canDrop ? (e) => {
+            if (e.dataTransfer.types.includes(DRAG_TYPE) || e.dataTransfer.types.includes(DRAG_FIELD_ID)) {
+              e.preventDefault()
+              e.stopPropagation()
+              e.dataTransfer.dropEffect = 'copy'
+            }
+          } : undefined}
+          onDrop={canDrop ? (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setPreviewDropIndex(null)
+            const fallbackIndex = pageFields.length > 0
+              ? (pageGlobalIndices[pageFields.length - 1] ?? 0) + 1
+              : getPageStartGlobalIndex(fields, currentPage)
+            const fieldId = e.dataTransfer.getData(DRAG_FIELD_ID)
+            const type = e.dataTransfer.getData(DRAG_TYPE) as FormFieldBlockType | ''
+            if (fieldId && onReorder) onReorder(fieldId, fallbackIndex)
+            else if (type && onAddFieldAt) onAddFieldAt(type, fallbackIndex)
+          } : undefined}
+        >
           {pageFields.length === 0 ? (
-            <p className="form-preview__empty">No fields on this page. Add fields or remove the page break.</p>
+            canDrop ? (
+              <div
+                className={`form-preview__drop-zone ${previewDropIndex === getPageStartGlobalIndex(fields, currentPage) ? 'form-preview__drop-zone--active' : ''}`}
+                onDragOver={(e) => handlePreviewDragOver(e, getPageStartGlobalIndex(fields, currentPage))}
+                onDragLeave={handlePreviewDragLeave}
+                onDrop={(e) => handlePreviewDrop(e, getPageStartGlobalIndex(fields, currentPage))}
+              >
+                <p className="form-preview__empty">No fields on this page. Drag a field here or add from the builder.</p>
+              </div>
+            ) : (
+              <p className="form-preview__empty">No fields on this page. Add fields or remove the page break.</p>
+            )
           ) : (
             <div className="form-preview__grid">
-              {pageFields.map((block, i) => (
-                <PreviewField key={block.id ?? i} block={block} />
-              ))}
+              {pageFields.flatMap((block, i) => {
+                const globalIndex = pageGlobalIndices[i] ?? 0
+                const dropSlotBefore = canDrop ? (
+                  <div
+                    key={`drop-${globalIndex}`}
+                    className={`form-preview__drop-slot ${previewDropIndex === globalIndex ? 'form-preview__drop-slot--active' : ''}`}
+                    onDragOver={(e) => handlePreviewDragOver(e, globalIndex)}
+                    onDragLeave={handlePreviewDragLeave}
+                    onDrop={(e) => handlePreviewDrop(e, globalIndex)}
+                  />
+                ) : null
+                const width = 'width' in block ? block.width ?? '100' : '100'
+                const insertAfterIndex = (pageGlobalIndices[i] ?? 0) + 1
+                const fieldEl = (
+                  <div
+                    key={block.id ?? i}
+                    className={`form-preview__field-wrap form-preview__field-wrap--w${width} ${onReorder ? 'form-preview__field-wrap--draggable' : ''}`}
+                    draggable={Boolean(onReorder)}
+                    onDragStart={
+                      onReorder && block.id
+                        ? (e) => {
+                            e.dataTransfer.setData(DRAG_FIELD_ID, block.id)
+                            e.dataTransfer.effectAllowed = 'move'
+                            e.currentTarget.setAttribute('data-dragging', 'true')
+                          }
+                        : undefined
+                    }
+                    onDragEnd={
+                      onReorder
+                        ? (e) => {
+                            e.currentTarget.removeAttribute('data-dragging')
+                          }
+                        : undefined
+                    }
+                    onDragOver={canDrop ? (e) => handlePreviewDragOver(e, insertAfterIndex) : undefined}
+                    onDrop={canDrop ? (e) => handlePreviewDrop(e, insertAfterIndex) : undefined}
+                  >
+                    <PreviewField block={block} />
+                  </div>
+                )
+                return dropSlotBefore ? [dropSlotBefore, fieldEl] : [fieldEl]
+              })}
+              {canDrop && pageFields.length > 0 ? (
+                <div
+                  key="drop-end"
+                  className={`form-preview__drop-slot ${previewDropIndex === (pageGlobalIndices[pageFields.length - 1] ?? 0) + 1 ? 'form-preview__drop-slot--active' : ''}`}
+                  onDragOver={(e) => handlePreviewDragOver(e, (pageGlobalIndices[pageFields.length - 1] ?? 0) + 1)}
+                  onDragLeave={handlePreviewDragLeave}
+                  onDrop={(e) => handlePreviewDrop(e, (pageGlobalIndices[pageFields.length - 1] ?? 0) + 1)}
+                />
+              ) : null}
             </div>
           )}
         </div>
