@@ -8,6 +8,8 @@ function getOptionalEnv(key: string, fallback = ''): string {
 }
 
 const rawApiUrl = getOptionalEnv('VITE_PAYLOAD_API_URL', 'http://localhost:3000').replace(/\/$/, '')
+const adminEmail = getOptionalEnv('VITE_PAYLOAD_ADMIN_EMAIL')
+const adminPassword = getOptionalEnv('VITE_PAYLOAD_ADMIN_PASSWORD')
 
 export const payloadConfig = {
   /** Base URL for Payload API. In dev uses proxy path to avoid CORS. */
@@ -22,11 +24,10 @@ export const payloadConfig = {
   organizationsSlug: getOptionalEnv('VITE_PAYLOAD_ORGANIZATIONS_SLUG', 'organizations'),
   branchesSlug: getOptionalEnv('VITE_PAYLOAD_BRANCHES_SLUG', 'branches'),
   formCategoriesSlug: getOptionalEnv('VITE_PAYLOAD_FORM_CATEGORIES_SLUG', 'form-categories'),
-  adminEmail: getOptionalEnv('VITE_PAYLOAD_ADMIN_EMAIL'),
-  adminPassword: getOptionalEnv('VITE_PAYLOAD_ADMIN_PASSWORD'),
-  hasAutoLoginCredentials: Boolean(
-    getOptionalEnv('VITE_PAYLOAD_ADMIN_EMAIL') && getOptionalEnv('VITE_PAYLOAD_ADMIN_PASSWORD'),
-  ),
+  adminEmail,
+  adminPassword,
+  /** Dev-only silent login; production builds never use env credentials for auth. */
+  hasAutoLoginCredentials: import.meta.env.DEV && Boolean(adminEmail && adminPassword),
   /** Optional: URL for AI convert-to-HTML endpoint (POST { message } => { html }). */
   aiConvertUrl: getOptionalEnv('VITE_AI_CONVERT_URL'),
 }

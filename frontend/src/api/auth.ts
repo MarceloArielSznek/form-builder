@@ -70,14 +70,18 @@ export function isAuthenticated(): boolean {
 
 /**
  * Ensure we have a token on startup: if already authenticated, do nothing;
- * otherwise log in with credentials from .env (VITE_PAYLOAD_ADMIN_EMAIL, VITE_PAYLOAD_ADMIN_PASSWORD).
- * Call this before rendering the app.
+ * in dev only, optionally log in using VITE_PAYLOAD_ADMIN_EMAIL / VITE_PAYLOAD_ADMIN_PASSWORD.
+ * Production always uses the login page.
  */
 export async function ensureToken(): Promise<LoginResult | null> {
   if (isAuthenticated()) return null
   const { adminEmail, adminPassword, hasAutoLoginCredentials } = payloadConfig
   if (!hasAutoLoginCredentials || !adminEmail || !adminPassword) {
-    console.warn('Payload: no credentials in .env (VITE_PAYLOAD_ADMIN_EMAIL, VITE_PAYLOAD_ADMIN_PASSWORD). Set them to auto-login.')
+    if (import.meta.env.DEV) {
+      console.warn(
+        'Payload: no credentials in .env (VITE_PAYLOAD_ADMIN_EMAIL, VITE_PAYLOAD_ADMIN_PASSWORD). Set them for dev auto-login.',
+      )
+    }
     return null
   }
   return login(adminEmail, adminPassword)

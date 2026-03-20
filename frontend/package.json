@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:prod": "vite preview --host 127.0.0.1 --port 4173"
   },
   "devDependencies": {
     "@types/dompurify": "^3.0.5",
