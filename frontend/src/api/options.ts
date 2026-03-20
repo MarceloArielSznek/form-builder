@@ -13,6 +13,12 @@ export interface Branch {
   title?: string
 }
 
+export interface Organization {
+  id: number
+  name?: string
+  title?: string
+}
+
 export interface FormCategoryOption {
   id?: string
   value: string
@@ -30,6 +36,11 @@ function listUrl(slug: string, path = ''): string {
   return `${base}/api/${slug}${path}`
 }
 
+function parseNumericId(id: unknown): number | null {
+  const parsed = typeof id === 'string' ? parseInt(id, 10) : Number(id)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
 /**
  * Fetch branches from Payload (e.g. /api/branches). Used for form branch multi-select.
  * Returns empty array on error (e.g. 404 if collection missing).
@@ -39,12 +50,34 @@ export async function getBranches(): Promise<Branch[]> {
     const url = `${listUrl(payloadConfig.branchesSlug)}?limit=500`
     const data = await requestJson<ListResponse<Branch>>(url, { headers: getAuthHeaders() })
     const docs = Array.isArray(data.docs) ? data.docs : []
-    return docs
-      .map((b) => {
-        const id = typeof b.id === 'string' ? parseInt(b.id, 10) : Number(b.id)
-        return Number.isNaN(id) ? null : { id, name: b.name ?? b.title, title: b.title ?? b.name }
-      })
-      .filter((b): b is Branch => b != null)
+    const mapped: Branch[] = []
+    for (const b of docs) {
+      const id = parseNumericId(b.id)
+      if (id == null) continue
+      mapped.push({ id, name: b.name ?? b.title, title: b.title ?? b.name })
+    }
+    return mapped
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Fetch organizations from Payload (e.g. /api/organizations). Used for form organization selector.
+ * Returns empty array on error (e.g. 404 if collection missing).
+ */
+export async function getOrganizations(): Promise<Organization[]> {
+  try {
+    const url = `${listUrl(payloadConfig.organizationsSlug)}?limit=500`
+    const data = await requestJson<ListResponse<Organization>>(url, { headers: getAuthHeaders() })
+    const docs = Array.isArray(data.docs) ? data.docs : []
+    const mapped: Organization[] = []
+    for (const org of docs) {
+      const id = parseNumericId(org.id)
+      if (id == null) continue
+      mapped.push({ id, name: org.name ?? org.title, title: org.title ?? org.name })
+    }
+    return mapped
   } catch {
     return []
   }

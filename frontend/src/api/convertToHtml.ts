@@ -11,12 +11,16 @@ export interface ConvertToHtmlResponse {
   html: string
 }
 
+interface ConvertToHtmlOptions {
+  timeoutMs?: number
+}
+
 /**
  * Convert plain text (with {{placeholders}}) to styled HTML via AI.
  * Requires VITE_AI_CONVERT_URL to be set. Endpoint should accept POST { message: string } and return { html: string }.
  * All {{...}} placeholders must be preserved in the returned HTML.
  */
-export async function convertMessageToHtml(message: string): Promise<string> {
+export async function convertMessageToHtml(message: string, options?: ConvertToHtmlOptions): Promise<string> {
   const url = payloadConfig.aiConvertUrl
   if (!url || !message.trim()) {
     throw new Error('Convert URL not configured or message is empty.')
@@ -26,6 +30,7 @@ export async function convertMessageToHtml(message: string): Promise<string> {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ message: message.trim() }),
+    timeoutMs: options?.timeoutMs ?? 60000,
   })
 
   if (typeof data.html !== 'string') {

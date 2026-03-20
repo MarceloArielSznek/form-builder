@@ -19,6 +19,7 @@ export const payloadConfig = {
   },
   authSlug: getOptionalEnv('VITE_PAYLOAD_AUTH_SLUG', 'users'),
   formsSlug: getOptionalEnv('VITE_PAYLOAD_FORMS_SLUG', 'forms'),
+  organizationsSlug: getOptionalEnv('VITE_PAYLOAD_ORGANIZATIONS_SLUG', 'organizations'),
   branchesSlug: getOptionalEnv('VITE_PAYLOAD_BRANCHES_SLUG', 'branches'),
   formCategoriesSlug: getOptionalEnv('VITE_PAYLOAD_FORM_CATEGORIES_SLUG', 'form-categories'),
   adminEmail: getOptionalEnv('VITE_PAYLOAD_ADMIN_EMAIL'),

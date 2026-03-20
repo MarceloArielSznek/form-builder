@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import DOMPurify from 'dompurify'
 import ReactMarkdown from 'react-markdown'
 import type { FormEmail } from '../types/payload'
-import { convertMessageToHtml, isConvertToHtmlAvailable } from '../api/convertToHtml'
+import { buildStandardEmailHtml, type EmailTemplateField } from '../lib/emailTemplate'
 import './EmailBuilderCard.css'
 
 function insertAtCursor(
@@ -21,41 +21,39 @@ function insertAtCursor(
   return { newValue, newStart, newEnd }
 }
 
-export interface FormFieldOption {
-  name: string
-  label?: string
-}
-
 interface EmailBuilderCardProps {
   email: FormEmail
   index: number
-  fieldOptions: FormFieldOption[]
+  fieldOptions: EmailTemplateField[]
+  sourceFormTitle?: string
   onChange: (email: FormEmail) => void
   onRemove: () => void
 }
 
-export default function EmailBuilderCard({ email, index, fieldOptions, onChange, onRemove }: EmailBuilderCardProps) {
+export default function EmailBuilderCard({
+  email,
+  index,
+  fieldOptions,
+  sourceFormTitle,
+  onChange,
+  onRemove,
+}: EmailBuilderCardProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [showFieldMenu, setShowFieldMenu] = useState(false)
-  const [convertLoading, setConvertLoading] = useState(false)
-  const [convertError, setConvertError] = useState<string | null>(null)
+  const [convertSuccess, setConvertSuccess] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const body = email.messageText ?? ''
   const isHtml = email.messageFormat === 'html'
-  const canConvert = isConvertToHtmlAvailable()
 
-  const handleConvertToHtml = async () => {
-    if (!body.trim() || !canConvert) return
-    setConvertError(null)
-    setConvertLoading(true)
-    try {
-      const html = await convertMessageToHtml(body)
-      onChange({ ...email, messageText: html, messageFormat: 'html' })
-    } catch (e) {
-      setConvertError(e instanceof Error ? e.message : 'Conversion failed.')
-    } finally {
-      setConvertLoading(false)
-    }
+  const generateTemplate = () => {
+    const html = buildStandardEmailHtml(sourceFormTitle ?? 'Form submission', fieldOptions)
+    onChange({ ...email, messageText: html, messageFormat: 'html' })
+    setConvertSuccess('Standard template generated from selected form fields.')
+    return html
+  }
+
+  const handleGenerateTemplate = () => {
+    generateTemplate()
   }
 
   useEffect(() => {
@@ -131,7 +129,7 @@ export default function EmailBuilderCard({ email, index, fieldOptions, onChange,
             />
           </div>
           <div className="email-builder-card__row">
-            <label className="email-builder-card__label">From</label>
+            <label className="email-builder-card__label">From (optional)</label>
             <input
               type="text"
               className="app-input email-builder-card__input"
@@ -227,18 +225,13 @@ export default function EmailBuilderCard({ email, index, fieldOptions, onChange,
             <div className="email-builder-card__toolbar email-builder-card__toolbar--convert">
               <button
                 type="button"
-                className="email-builder-card__toolbar-btn email-builder-card__convert-ai-btn"
-                onClick={handleConvertToHtml}
-                disabled={!body.trim() || !canConvert || convertLoading}
-                title={!canConvert ? 'Set VITE_AI_CONVERT_URL in .env to enable' : 'Convert your message to styled HTML (keeps {{placeholders}})'}
+                className="email-builder-card__toolbar-btn email-builder-card__generate-btn"
+                onClick={handleGenerateTemplate}
+                disabled={fieldOptions.length === 0}
+                title="Build a complete HTML template with all fields from the selected form."
               >
-                {convertLoading ? 'Converting…' : 'Convert to HTML with AI'}
+                Generate standard template
               </button>
-              {!canConvert && (
-                <span className="email-builder-card__convert-hint">
-                  Set VITE_AI_CONVERT_URL in <code>frontend/.env</code> to your backend URL (e.g. http://localhost:3000/api/convert-email-to-html). Restart the frontend after changing.
-                </span>
-              )}
               <div className="email-builder-card__insert-field-wrap" ref={menuRef}>
                 <button
                   type="button"
@@ -253,9 +246,9 @@ export default function EmailBuilderCard({ email, index, fieldOptions, onChange,
                     {fieldOptions.length === 0 ? (
                       <div className="email-builder-card__field-menu-empty">No form fields with a name yet. Add fields in Build form.</div>
                     ) : (
-                      fieldOptions.map((opt) => (
+                      fieldOptions.map((opt, idx) => (
                         <button
-                          key={opt.name}
+                          key={`${opt.name}-${idx}`}
                           type="button"
                           className="email-builder-card__field-menu-item"
                           onClick={() => insertPlaceholder(opt.name)}
@@ -269,9 +262,13 @@ export default function EmailBuilderCard({ email, index, fieldOptions, onChange,
                 )}
               </div>
             </div>
-            {convertError && (
-              <div className="email-builder-card__convert-error" role="alert">
-                {convertError}
+            <p className="email-builder-card__generator-note">
+              Standard generation uses {fieldOptions.length} field{fieldOptions.length === 1 ? '' : 's'} from{' '}
+              <strong>{sourceFormTitle?.trim() || 'current form'}</strong>.
+            </p>
+            {convertSuccess && (
+              <div className="email-builder-card__convert-success" role="status">
+                {convertSuccess}
               </div>
             )}
             <textarea
@@ -300,8 +297,8 @@ export default function EmailBuilderCard({ email, index, fieldOptions, onChange,
                     dangerouslySetInnerHTML={{
                       __html: DOMPurify.sanitize(body, {
                         ADD_ATTR: ['target'],
-                        ALLOWED_TAGS: ['h1','h2','h3','h4','p','br','strong','b','em','i','u','a','ul','ol','li','table','thead','tbody','tr','th','td','span','div'],
-                        ALLOWED_ATTR: ['href','target','style','width','cellpadding','cellspacing','border','colspan','rowspan'],
+                        ALLOWED_TAGS: ['h1','h2','h3','h4','p','br','strong','b','em','i','u','a','ul','ol','li','table','thead','tbody','tr','th','td','span','div','img'],
+                        ALLOWED_ATTR: ['href','target','style','width','height','src','alt','cellpadding','cellspacing','border','colspan','rowspan'],
                       }),
                     }}
                   />

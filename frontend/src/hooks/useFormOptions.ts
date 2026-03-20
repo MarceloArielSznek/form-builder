@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getBranches, getFormCategories } from '../api/options'
-import type { Branch, FormCategoryOption } from '../api/options'
+import { getBranches, getFormCategories, getOrganizations } from '../api/options'
+import type { Branch, FormCategoryOption, Organization } from '../api/options'
 
 export function useFormOptions() {
   const [branches, setBranches] = useState<Branch[]>([])
   const [categories, setCategories] = useState<FormCategoryOption[]>([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -12,16 +13,19 @@ export function useFormOptions() {
     setLoading(true)
     setError(null)
     try {
-      const [branchesRes, categoriesRes] = await Promise.all([
+      const [branchesRes, categoriesRes, organizationsRes] = await Promise.all([
         getBranches(),
         getFormCategories(),
+        getOrganizations(),
       ])
       setBranches(branchesRes)
       setCategories(categoriesRes)
+      setOrganizations(organizationsRes)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load options')
       setBranches([])
       setCategories([])
+      setOrganizations([])
     } finally {
       setLoading(false)
     }
@@ -31,5 +35,5 @@ export function useFormOptions() {
     load()
   }, [load])
 
-  return { branches, categories, loading, error, reload: load }
+  return { branches, categories, organizations, loading, error, reload: load }
 }

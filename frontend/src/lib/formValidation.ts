@@ -16,6 +16,17 @@ function isLabeledField(block: FormFieldBlock): block is FormFieldBlock & { labe
   return 'label' in block
 }
 
+function parseEmails(value: string): string[] {
+  return value
+    .split(/[,\s;]+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+}
+
+function isEmailLike(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
 export function validateForm(form: Form | null): ValidationIssue[] {
   if (!form) {
     return []
@@ -30,6 +41,14 @@ export function validateForm(form: Form | null): ValidationIssue[] {
       severity: 'warning',
       title: 'Add a form title',
       detail: 'A clear title makes the workspace easier to scan and manage.',
+    })
+  }
+
+  if (typeof form.organization !== 'number' || Number.isNaN(form.organization)) {
+    issues.push({
+      severity: 'error',
+      title: 'Organization is required',
+      detail: 'Select an organization in Post-submission settings before saving.',
     })
   }
 
@@ -108,6 +127,76 @@ export function validateForm(form: Form | null): ValidationIssue[] {
       })
     }
   }
+
+  const confirmationType = form.confirmationType ?? 'message'
+  const confirmationMessage = (form.confirmationMessageText ?? '').trim()
+  const redirectUrl = form.redirect?.url?.trim() ?? ''
+
+  if (confirmationType === 'redirect' && !redirectUrl) {
+    issues.push({
+      severity: 'error',
+      title: 'Redirect URL is required',
+      detail: 'Set a URL for redirect confirmation before saving.',
+    })
+  }
+
+  if (confirmationType !== 'redirect' && !confirmationMessage) {
+    issues.push({
+      severity: 'warning',
+      title: 'Confirmation message is empty',
+      detail: 'Add a message users will see after submitting.',
+    })
+  }
+
+  const emails = Array.isArray(form.emails) ? form.emails : []
+  emails.forEach((email, index) => {
+    const label = `Email ${index + 1}`
+    const to = (email.emailTo ?? '').trim()
+    const from = (email.emailFrom ?? '').trim()
+    const subject = (email.subject ?? '').trim()
+    const message = (email.messageText ?? (typeof email.message === 'string' ? email.message : '') ?? '').trim()
+
+    if (!to) {
+      issues.push({
+        severity: 'error',
+        title: `${label}: recipient is required`,
+        detail: 'Fill "To" with at least one destination address.',
+      })
+    } else {
+      const invalidTo = parseEmails(to).filter((addr) => !isEmailLike(addr))
+      if (invalidTo.length > 0) {
+        issues.push({
+          severity: 'warning',
+          title: `${label}: check recipient format`,
+          detail: `Some "To" entries do not look like valid emails: ${invalidTo.join(', ')}.`,
+        })
+      }
+    }
+
+    if (from && !isEmailLike(from)) {
+      issues.push({
+        severity: 'warning',
+        title: `${label}: check sender format`,
+        detail: `"From" does not look like a valid email: ${from}.`,
+      })
+    }
+
+    if (!subject) {
+      issues.push({
+        severity: 'error',
+        title: `${label}: subject is required`,
+        detail: 'Add an email subject before saving.',
+      })
+    }
+
+    if (!message) {
+      issues.push({
+        severity: 'warning',
+        title: `${label}: message body is empty`,
+        detail: 'Add email content to avoid sending blank notifications.',
+      })
+    }
+  })
 
   return issues
 }

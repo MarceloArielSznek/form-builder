@@ -6,6 +6,7 @@ import {
   fieldsForPayload,
   mergeSavedFields,
   richTextToMarkdown,
+  textToLexical,
 } from '../lib/fieldBlocks'
 import { validateForm } from '../lib/formValidation'
 import type { Form, FormEmail, FormFieldBlock, FormFieldBlockType } from '../types/payload'
@@ -23,6 +24,49 @@ function normalizeEmail(email: FormEmail): FormEmail {
   return { ...email, messageText: text }
 }
 
+function relationId(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = parseInt(value, 10)
+    return Number.isNaN(parsed) ? undefined : parsed
+  }
+  if (value && typeof value === 'object' && 'id' in value) {
+    return relationId((value as { id?: unknown }).id)
+  }
+  return undefined
+}
+
+function relationIds(values: unknown): number[] {
+  if (!Array.isArray(values)) return []
+  const ids: number[] = []
+  for (const value of values) {
+    const id = relationId(value)
+    if (id != null) ids.push(id)
+  }
+  return ids
+}
+
+function normalizeEmailForPayload(email: FormEmail): FormEmail {
+  const rawMessage =
+    email.messageText ??
+    (email.message != null && typeof email.message === 'string' ? email.message : richTextToMarkdown(email.message))
+
+  const next: FormEmail = {
+    emailTo: email.emailTo.trim(),
+    emailFrom: email.emailFrom.trim(),
+    subject: email.subject.trim(),
+    message: textToLexical(rawMessage ?? ''),
+    messageFormat: email.messageFormat ?? 'markdown',
+  }
+
+  if (email.id) next.id = email.id
+  if (email.cc?.trim()) next.cc = email.cc.trim()
+  if (email.bcc?.trim()) next.bcc = email.bcc.trim()
+  if (email.replyTo?.trim()) next.replyTo = email.replyTo.trim()
+
+  return next
+}
+
 function serializeForm(form: Form | null): string {
   if (!form) return ''
   return JSON.stringify({
@@ -34,6 +78,7 @@ function serializeForm(form: Form | null): string {
     redirect: form.redirect,
     emails: form.emails,
     formCategory: form.formCategory,
+    organization: form.organization,
     branches: form.branches,
   })
 }
@@ -56,6 +101,8 @@ function normalizeForm(form: Form): Form {
     fields,
     emails,
     confirmationMessageText,
+    organization: relationId(form.organization),
+    branches: relationIds(form.branches),
     redirect: form.redirect ?? { url: null },
   }
 }
@@ -109,6 +156,11 @@ export function useFormEditor(formId: string | null) {
 
   useEffect(() => {
     if (formId) {
+      if (form?.id && form.id === formId) {
+        setLoading(false)
+        setLoadError(null)
+        return
+      }
       void loadForm(formId)
       return
     }
@@ -118,7 +170,7 @@ export function useFormEditor(formId: string | null) {
     setLoadError(null)
     setSaveFeedback(null)
     commitForm({ id: '', title: '', fields: [] })
-  }, [commitForm, formId, loadForm])
+  }, [commitForm, form?.id, formId, loadForm])
 
   const fields = useMemo(() => (Array.isArray(form?.fields) ? form.fields : []), [form?.fields])
 
@@ -254,18 +306,22 @@ export function useFormEditor(formId: string | null) {
     setSaving(true)
     setSaveFeedback(null)
     const payloadFields = fieldsForPayload(fields)
+    const confirmationType = form.confirmationType ?? 'message'
+    const confirmationMessageSource =
+      form.confirmationMessageText ??
+      (typeof form.confirmationMessage === 'string' ? form.confirmationMessage : richTextToMarkdown(form.confirmationMessage))
 
-    const emailPayload = (form.emails ?? []).map((e) => ({
-      ...e,
-      message: e.messageText ?? e.message,
-    }))
+    const emailPayload = (form.emails ?? []).map(normalizeEmailForPayload)
 
     const payload = {
       title: form.title ?? '',
       fields: payloadFields,
       submitButtonLabel: form.submitButtonLabel,
-      confirmationType: form.confirmationType ?? 'message',
-      confirmationMessage: form.confirmationMessageText ?? form.confirmationMessage,
+      confirmationType,
+      confirmationMessage:
+        confirmationType === 'redirect'
+          ? undefined
+          : textToLexical(confirmationMessageSource ?? ''),
       redirect: form.redirect ?? { url: null },
       emails: emailPayload,
       formCategory: form.formCategory,
@@ -279,8 +335,18 @@ export function useFormEditor(formId: string | null) {
         : await createForm(payload)
 
       const nextForm = normalizeForm({
+        ...form,
         ...savedForm,
         fields: mergeSavedFields(savedForm.fields ?? [], fields),
+        submitButtonLabel: savedForm.submitButtonLabel ?? form.submitButtonLabel,
+        confirmationType: savedForm.confirmationType ?? form.confirmationType,
+        confirmationMessage: savedForm.confirmationMessage ?? form.confirmationMessage,
+        confirmationMessageText: savedForm.confirmationMessageText ?? form.confirmationMessageText,
+        redirect: savedForm.redirect ?? form.redirect,
+        emails: savedForm.emails ?? form.emails,
+        formCategory: savedForm.formCategory ?? form.formCategory,
+        organization: savedForm.organization ?? form.organization,
+        branches: savedForm.branches ?? form.branches,
       })
       setForm(nextForm)
       snapshotRef.current = serializeForm(nextForm)
@@ -290,6 +356,7 @@ export function useFormEditor(formId: string | null) {
       })
       return savedForm.id
     } catch (error) {
+      console.error('[Form save] Failed to persist form in Payload.', error)
       setSaveFeedback({
         tone: 'danger',
         message: error instanceof Error ? error.message : 'Failed to save form.',

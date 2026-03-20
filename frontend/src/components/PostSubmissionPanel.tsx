@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Form, FormEmail, FormFieldBlock } from '../types/payload'
 import { getBlockLabel } from '../lib/fieldBlocks'
 import { useFormOptions } from '../hooks/useFormOptions'
+import { getForm, listForms } from '../api/forms'
 import EmailBuilderCard from './EmailBuilderCard'
 import './PostSubmissionPanel.css'
 
@@ -32,22 +33,48 @@ interface PostSubmissionPanelProps {
 
 /** Default form category options when Payload has an enum with a single option (e.g. "project"). */
 const DEFAULT_FORM_CATEGORIES = [{ value: 'project', label: 'Project' }]
+const FALLBACK_ORG_LABEL = 'Attic Projects'
 
 function getFieldOptionsFromForm(form: Form): { name: string; label?: string }[] {
   const fields = Array.isArray(form.fields) ? form.fields : []
   return fields
     .filter((b): b is FormFieldBlock & { name: string } => 'name' in b && typeof (b as { name: unknown }).name === 'string')
-    .map((b) => ({ name: (b as { name: string }).name, label: getBlockLabel(b) }))
+    .map((b) => ({
+      name: (b as { name: string }).name,
+      label: getBlockLabel(b),
+      blockType: b.blockType,
+      required: 'required' in b ? Boolean((b as { required?: boolean }).required) : false,
+    }))
+}
+
+interface FormTemplateSource {
+  id: string
+  title: string
 }
 
 export default function PostSubmissionPanel({ form, onUpdate }: PostSubmissionPanelProps) {
   const confirmRef = useRef<HTMLTextAreaElement>(null)
   const branchDropdownRef = useRef<HTMLDivElement>(null)
   const [branchDropdownOpen, setBranchDropdownOpen] = useState(false)
-  const { branches, categories, loading: optionsLoading } = useFormOptions()
+  const [templateSourceId, setTemplateSourceId] = useState<string>('')
+  const [templateSourceForm, setTemplateSourceForm] = useState<Form | null>(null)
+  const [templateSources, setTemplateSources] = useState<FormTemplateSource[]>([])
+  const [templateSourcesLoading, setTemplateSourcesLoading] = useState(false)
+  const { branches, categories, organizations, loading: optionsLoading } = useFormOptions()
   const categoryOptions = categories.length > 0 ? categories : DEFAULT_FORM_CATEGORIES
+  const organizationId = typeof form.organization === 'number' ? form.organization : null
+  const organizationOptions = organizations.length > 0
+    ? organizations
+    : organizationId != null
+      ? [{ id: organizationId, name: FALLBACK_ORG_LABEL }]
+      : []
   const emails = Array.isArray(form.emails) ? form.emails : []
-  const fieldOptions = useMemo(() => getFieldOptionsFromForm(form), [form.fields])
+  const currentFieldOptions = useMemo(() => getFieldOptionsFromForm(form), [form.fields])
+  const sourceFieldOptions = useMemo(
+    () => (templateSourceForm ? getFieldOptionsFromForm(templateSourceForm) : currentFieldOptions),
+    [currentFieldOptions, templateSourceForm],
+  )
+  const sourceTitle = templateSourceForm?.title ?? form.title ?? 'Form submission'
   const confirmationMessageText = form.confirmationMessageText ?? ''
   const redirectUrl = typeof form.redirect === 'object' && form.redirect?.url != null ? form.redirect.url : ''
   const selectedBranchIds = Array.isArray(form.branches) ? form.branches : []
@@ -62,6 +89,57 @@ export default function PostSubmissionPanel({ form, onUpdate }: PostSubmissionPa
     document.addEventListener('click', handleClick, true)
     return () => document.removeEventListener('click', handleClick, true)
   }, [branchDropdownOpen])
+
+  useEffect(() => {
+    let mounted = true
+    const loadTemplateSources = async () => {
+      setTemplateSourcesLoading(true)
+      try {
+        const response = await listForms({ limit: 200, depth: 0 })
+        if (!mounted) return
+        const docs = Array.isArray(response.docs) ? response.docs : []
+        const sources = docs
+          .filter((f): f is Form & { id: string } => typeof f.id === 'string' && f.id.length > 0)
+          .map((f) => ({ id: f.id, title: f.title?.trim() || `Form ${f.id}` }))
+        setTemplateSources(sources)
+      } catch {
+        if (!mounted) return
+        setTemplateSources([])
+      } finally {
+        if (mounted) setTemplateSourcesLoading(false)
+      }
+    }
+    void loadTemplateSources()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    const currentId = form.id == null ? '' : String(form.id).trim()
+    setTemplateSourceId(currentId || '__current__')
+    setTemplateSourceForm(null)
+  }, [form.id])
+
+  useEffect(() => {
+    let mounted = true
+    const loadSourceForm = async () => {
+      if (!templateSourceId || templateSourceId === '__current__') {
+        setTemplateSourceForm(null)
+        return
+      }
+      try {
+        const source = await getForm(templateSourceId, { depth: 2 })
+        if (mounted) setTemplateSourceForm(source)
+      } catch {
+        if (mounted) setTemplateSourceForm(null)
+      }
+    }
+    void loadSourceForm()
+    return () => {
+      mounted = false
+    }
+  }, [templateSourceId])
 
   const toggleBranch = (id: number) => {
     const next = selectedBranchIds.includes(id)
@@ -125,6 +203,25 @@ export default function PostSubmissionPanel({ form, onUpdate }: PostSubmissionPa
               {categoryOptions.map((cat) => (
                 <option key={cat.value} value={cat.value}>
                   {cat.label ?? cat.value}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="post-submission__group">
+            <label className="post-submission__label">Organization *</label>
+            <select
+              className="app-input post-submission__input"
+              value={organizationId ?? ''}
+              onChange={(e) => {
+                const value = e.target.value
+                onUpdate({ organization: value ? Number(value) : undefined })
+              }}
+              disabled={optionsLoading}
+            >
+              <option value="">Select organization</option>
+              {organizationOptions.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name ?? org.title ?? `Organization ${org.id}`}
                 </option>
               ))}
             </select>
@@ -219,6 +316,24 @@ export default function PostSubmissionPanel({ form, onUpdate }: PostSubmissionPa
           <div className="post-submission__emails-head">
             <h2 className="post-submission__section-title">Emails after submission</h2>
             <p className="post-submission__section-copy">Configure emails sent when the form is submitted. Use the preview to see how each email will look.</p>
+            <div className="post-submission__group">
+              <label className="post-submission__label">Template source form</label>
+              <select
+                className="app-input post-submission__input"
+                value={templateSourceId}
+                onChange={(e) => setTemplateSourceId(e.target.value)}
+                disabled={templateSourcesLoading}
+              >
+                <option value="__current__">Current form</option>
+                {templateSources
+                  .filter((source) => source.id !== String(form.id ?? ''))
+                  .map((source) => (
+                    <option key={source.id} value={source.id}>
+                      {source.title}
+                    </option>
+                  ))}
+              </select>
+            </div>
             <button type="button" className="app-button post-submission__add-email" onClick={addEmail}>
               + Add email
             </button>
@@ -237,7 +352,8 @@ export default function PostSubmissionPanel({ form, onUpdate }: PostSubmissionPa
                   key={email.id ?? index}
                   email={email}
                   index={index}
-                  fieldOptions={fieldOptions}
+                  fieldOptions={sourceFieldOptions}
+                  sourceFormTitle={sourceTitle}
                   onChange={(e) => updateEmail(index, e)}
                   onRemove={() => removeEmail(index)}
                 />

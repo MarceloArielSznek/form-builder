@@ -13,6 +13,8 @@ interface FormPreviewProps {
   selectedFieldId?: string | null
   onReorder?: (fieldId: string, toIndex: number) => void
   onAddFieldAt?: (type: FormFieldBlockType, index: number) => void
+  onRemoveField?: (fieldId: string) => void
+  onSelectField?: (fieldId: string) => void
 }
 
 function splitByPageBreak(fields: FormFieldBlock[]): FormFieldBlock[][] {
@@ -165,12 +167,26 @@ const PreviewField = memo(function PreviewField({ block }: { block: FormFieldBlo
             {placeholder && (
               <option value="">{placeholder}</option>
             )}
-            {options.map((o) => (
-              <option key={o.value || o.label} value={o.value}>
+            {options.map((o, idx) => (
+              <option key={`${o.value ?? o.label ?? 'option'}-${idx}`} value={o.value}>
                 {o.label || o.value}
               </option>
             ))}
           </select>
+          <div className="preview-select-options">
+            {options.length > 0 ? (
+              <ul className="preview-select-options__list">
+                {options.map((o, idx) => (
+                  <li key={`${o.value || o.label}-${idx}`} className="preview-select-options__item">
+                    <span className="preview-select-options__label">{o.label || '(no label)'}</span>
+                    <span className="preview-select-options__value">{o.value || '(no value)'}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="preview-select-options__empty">No options configured yet.</p>
+            )}
+          </div>
         </div>
       )
     }
@@ -238,11 +254,20 @@ function getPageStartGlobalIndex(fields: FormFieldBlock[], pageIndex: number): n
   return fields.length
 }
 
-function FormPreview({ form, className = '', selectedFieldId, onReorder, onAddFieldAt }: FormPreviewProps) {
+function FormPreview({
+  form,
+  className = '',
+  selectedFieldId,
+  onReorder,
+  onAddFieldAt,
+  onRemoveField,
+  onSelectField,
+}: FormPreviewProps) {
   const fields = Array.isArray(form?.fields) ? form.fields : []
   const pages = useMemo(() => splitByPageBreak(fields), [fields])
   const [pageIndex, setPageIndex] = useState(0)
   const [previewDropIndex, setPreviewDropIndex] = useState<number | null>(null)
+  const [isBinActive, setIsBinActive] = useState(false)
   const totalPages = Math.max(1, pages.length)
   const currentPage = Math.min(pageIndex, totalPages - 1)
   const pageFields = pages[currentPage] ?? []
@@ -253,6 +278,7 @@ function FormPreview({ form, className = '', selectedFieldId, onReorder, onAddFi
   )
 
   const canDrop = Boolean(onReorder || onAddFieldAt)
+  const canRemove = Boolean(onRemoveField)
 
   const handlePreviewDragOver = (e: React.DragEvent, globalIndex: number) => {
     if (!canDrop) return
@@ -283,6 +309,31 @@ function FormPreview({ form, className = '', selectedFieldId, onReorder, onAddFi
     }
   }
 
+  const handleBinDragOver = (e: React.DragEvent) => {
+    if (!canRemove) return
+    if (!e.dataTransfer.types.includes(DRAG_FIELD_ID)) return
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+    setIsBinActive(true)
+  }
+
+  const handleBinDragLeave = () => {
+    setIsBinActive(false)
+  }
+
+  const handleBinDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsBinActive(false)
+    setPreviewDropIndex(null)
+    if (!canRemove) return
+    const fieldId = e.dataTransfer.getData(DRAG_FIELD_ID)
+    if (fieldId) {
+      onRemoveField?.(fieldId)
+    }
+  }
+
   const title = form?.title || 'Form preview'
   const selectedPage = useMemo(() => {
     if (!selectedFieldId) {
@@ -303,11 +354,14 @@ function FormPreview({ form, className = '', selectedFieldId, onReorder, onAddFi
   }, [selectedPage])
 
   useEffect(() => {
-    if (!canDrop) return
-    const clear = () => setPreviewDropIndex(null)
+    if (!canDrop && !canRemove) return
+    const clear = () => {
+      setPreviewDropIndex(null)
+      setIsBinActive(false)
+    }
     document.addEventListener('dragend', clear)
     return () => document.removeEventListener('dragend', clear)
-  }, [canDrop])
+  }, [canDrop, canRemove])
 
   return (
     <div className={`form-preview ${className}`}>
@@ -372,17 +426,24 @@ function FormPreview({ form, className = '', selectedFieldId, onReorder, onAddFi
                 const fieldEl = (
                   <div
                     key={block.id ?? i}
-                    className={`form-preview__field-wrap form-preview__field-wrap--w${width} ${onReorder ? 'form-preview__field-wrap--draggable' : ''}`}
+                    className={`form-preview__field-wrap form-preview__field-wrap--w${width} ${onReorder ? 'form-preview__field-wrap--draggable' : ''} ${onSelectField && block.id ? 'form-preview__field-wrap--selectable' : ''} ${selectedFieldId && block.id === selectedFieldId ? 'form-preview__field-wrap--selected' : ''}`}
                     draggable={Boolean(onReorder)}
-                    onDragStart={
-                      onReorder && block.id
-                        ? (e) => {
-                            e.dataTransfer.setData(DRAG_FIELD_ID, block.id)
-                            e.dataTransfer.effectAllowed = 'move'
-                            e.currentTarget.setAttribute('data-dragging', 'true')
+                    onClick={
+                      block.id && onSelectField
+                        ? () => {
+                            onSelectField(block.id as string)
                           }
                         : undefined
                     }
+                    onDragStart={(() => {
+                      const fieldId = block.id
+                      if (!onReorder || !fieldId) return undefined
+                      return (e: React.DragEvent) => {
+                        e.dataTransfer.setData(DRAG_FIELD_ID, fieldId)
+                        e.dataTransfer.effectAllowed = 'move'
+                        e.currentTarget.setAttribute('data-dragging', 'true')
+                      }
+                    })()}
                     onDragEnd={
                       onReorder
                         ? (e) => {
@@ -410,6 +471,18 @@ function FormPreview({ form, className = '', selectedFieldId, onReorder, onAddFi
             </div>
           )}
         </div>
+        {canRemove && (
+          <div className="form-preview__trash-row">
+            <div
+              className={`form-preview__trash ${isBinActive ? 'form-preview__trash--active' : ''}`}
+              onDragOver={handleBinDragOver}
+              onDragLeave={handleBinDragLeave}
+              onDrop={handleBinDrop}
+            >
+              Drag field here to remove
+            </div>
+          </div>
+        )}
         {totalPages > 1 && (
           <div className="form-preview__pagination">
             <button

@@ -395,6 +395,8 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
             selectedFieldId={selectedFieldId}
             onReorder={moveBlockToIndex}
             onAddFieldAt={addFieldAt}
+            onRemoveField={removeBlock}
+            onSelectField={setSelectedFieldId}
           />
         </section>
 

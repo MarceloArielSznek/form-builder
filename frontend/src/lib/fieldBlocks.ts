@@ -57,7 +57,7 @@ export function fieldsForPayload(fields: FormFieldBlock[]): FormFieldBlock[] {
     .map((block) => {
       if (block.blockType !== 'message') return block
       const text = (block as { messageText?: string }).messageText ?? ''
-      return { ...block, message: text } as FormFieldBlock
+      return { ...block, message: textToLexical(text) } as FormFieldBlock
     })
 }
 
@@ -117,6 +117,121 @@ const LEXICAL_HEADING_TAG_TO_MD: Record<string, string> = {
   h4: '#### ',
   h5: '##### ',
   h6: '###### ',
+}
+
+interface LexicalTextNode {
+  detail: number
+  format: number
+  mode: 'normal'
+  style: string
+  text: string
+  type: 'text'
+  version: 1
+}
+
+interface LexicalParagraphNode {
+  children: LexicalTextNode[]
+  direction: 'ltr'
+  format: ''
+  indent: 0
+  type: 'paragraph'
+  version: 1
+}
+
+interface LexicalHeadingNode {
+  children: LexicalTextNode[]
+  direction: 'ltr'
+  format: ''
+  indent: 0
+  type: 'heading'
+  tag: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
+  version: 1
+}
+
+type LexicalRootChild = LexicalParagraphNode | LexicalHeadingNode
+
+interface LexicalRootNode {
+  children: LexicalRootChild[]
+  direction: 'ltr'
+  format: ''
+  indent: 0
+  type: 'root'
+  version: 1
+}
+
+interface LexicalDocument {
+  root: LexicalRootNode
+}
+
+function lexicalText(text: string): LexicalTextNode {
+  return {
+    detail: 0,
+    format: 0,
+    mode: 'normal',
+    style: '',
+    text,
+    type: 'text',
+    version: 1,
+  }
+}
+
+function lexicalParagraph(text: string): LexicalParagraphNode {
+  return {
+    children: [lexicalText(text)],
+    direction: 'ltr',
+    format: '',
+    indent: 0,
+    type: 'paragraph',
+    version: 1,
+  }
+}
+
+function lexicalHeading(tag: LexicalHeadingNode['tag'], text: string): LexicalHeadingNode {
+  return {
+    children: [lexicalText(text)],
+    direction: 'ltr',
+    format: '',
+    indent: 0,
+    type: 'heading',
+    tag,
+    version: 1,
+  }
+}
+
+/**
+ * Convert plain text / markdown-ish content to a minimal Lexical document.
+ * This keeps Payload rich-text fields valid even when edited as plain text.
+ */
+export function textToLexical(value: string): LexicalDocument {
+  const source = (value ?? '').replace(/\r\n/g, '\n').trim()
+  const blocks = source ? source.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean) : []
+  const children: LexicalRootChild[] = []
+
+  for (const block of blocks) {
+    const headingMatch = block.match(/^(#{1,6})\s+(.+)$/)
+    if (headingMatch) {
+      const level = Math.max(1, Math.min(6, headingMatch[1].length))
+      const tag = `h${level}` as LexicalHeadingNode['tag']
+      children.push(lexicalHeading(tag, headingMatch[2].trim()))
+    } else {
+      children.push(lexicalParagraph(block))
+    }
+  }
+
+  if (children.length === 0) {
+    children.push(lexicalParagraph(''))
+  }
+
+  return {
+    root: {
+      children,
+      direction: 'ltr',
+      format: '',
+      indent: 0,
+      type: 'root',
+      version: 1,
+    },
+  }
 }
 
 /** Convert Payload Lexical rich text to Markdown. Exported for form-level confirmation and email bodies. */

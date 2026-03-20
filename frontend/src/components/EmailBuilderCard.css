@@ -122,6 +122,21 @@
   white-space: nowrap;
 }
 
+.email-builder-card__generate-btn,
+.email-builder-card__generate-ai-btn {
+  white-space: nowrap;
+}
+
+.email-builder-card__generate-btn {
+  background: var(--surface-subtle);
+}
+
+.email-builder-card__generate-ai-btn {
+  background: color-mix(in srgb, var(--accent-bg) 80%, var(--surface-subtle));
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
 .email-builder-card__convert-ai-btn:hover:not(:disabled) {
   background: var(--accent);
   color: #fff;
@@ -160,6 +175,22 @@
   background: var(--danger-bg);
   border-radius: 0.4rem;
   margin-top: 0.25rem;
+}
+
+.email-builder-card__convert-success {
+  font-size: 0.8rem;
+  color: #0f5132;
+  padding: 0.35rem 0.5rem;
+  background: #d1e7dd;
+  border-radius: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.email-builder-card__generator-note {
+  margin: 0.2rem 0 0.1rem;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  line-height: 1.35;
 }
 
 .email-builder-card__insert-field-btn {
