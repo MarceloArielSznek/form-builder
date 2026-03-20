@@ -10,7 +10,7 @@
   - `VITE_PAYLOAD_API_URL` – Payload API base URL (e.g. `http://localhost:3000` in dev; HTTPS public URL in production builds)
   - `VITE_PAYLOAD_AUTH_SLUG` – Auth collection slug (usually `users`)
   - Optionally `VITE_PAYLOAD_ADMIN_EMAIL` and `VITE_PAYLOAD_ADMIN_PASSWORD` – **dev only** (Vite dev server): auto-login and login form pre-fill. Omit for production builds; auth is always via the login page.
-- **VPS / Cloudflare:** `deploy/ecosystem.config.cjs` (PM2) and `deploy/nginx-forms.yallaprojects.com.conf` (reverse proxy to the app on port 4173).
+- **VPS:** `deploy/ecosystem.config.cjs` (PM2) and `deploy/nginx-site.conf.example` (copy and set `server_name` + TLS paths).
 - **In-app login:** Email and password can be entered in a login form; they are sent to Payload’s login endpoint and never stored. The returned JWT is stored in `sessionStorage` (see `src/api/auth.ts`).
 - `.env` is gitignored; do not commit credentials.
 

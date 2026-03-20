@@ -8,8 +8,9 @@ function getOptionalEnv(key: string, fallback = ''): string {
 }
 
 const rawApiUrl = getOptionalEnv('VITE_PAYLOAD_API_URL', 'http://localhost:3000').replace(/\/$/, '')
-const adminEmail = getOptionalEnv('VITE_PAYLOAD_ADMIN_EMAIL')
-const adminPassword = getOptionalEnv('VITE_PAYLOAD_ADMIN_PASSWORD')
+/** Read only in dev so production bundles never embed admin env vars from a mistaken CI .env. */
+const adminEmail = import.meta.env.DEV ? getOptionalEnv('VITE_PAYLOAD_ADMIN_EMAIL') : ''
+const adminPassword = import.meta.env.DEV ? getOptionalEnv('VITE_PAYLOAD_ADMIN_PASSWORD') : ''
 
 export const payloadConfig = {
   /** Base URL for Payload API. In dev uses proxy path to avoid CORS. */

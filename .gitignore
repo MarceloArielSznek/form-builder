@@ -12,7 +12,14 @@ dist
 dist-ssr
 *.local
 .env
+.env.*
+!.env.example
+!**/.env.example
 .env.*.local
+
+# TLS / secrets (never commit)
+*.pem
+*.key
 
 # Editor directories and files
 .vscode/*

@@ -6,8 +6,7 @@
  *   pm2 start deploy/ecosystem.config.cjs
  *   pm2 save
  *
- * Pair with Nginx (see nginx-forms.yallaprojects.com.conf) proxying to 127.0.0.1:4173.
- * Cloudflare DNS: A record `forms` → VPS IP (proxied).
+ * Pair with Nginx (see nginx-site.conf.example) proxying to 127.0.0.1:4173.
  */
 const path = require('path')
 
