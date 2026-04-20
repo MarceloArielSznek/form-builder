@@ -239,6 +239,74 @@
   font-size: 0.875rem;
 }
 
+.form-list__btn-action {
+  min-height: 2.25rem;
+  padding-inline: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.form-list__row-actions-group {
+  display: inline-flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.form-list__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-list__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.form-list__group-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 0.125rem;
+}
+
+.form-list__group-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-h);
+  letter-spacing: 0.01em;
+}
+
+.form-list__group-copy {
+  margin: 0.15rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-soft);
+}
+
+.form-list__group-count {
+  min-width: 1.75rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.form-list__group-empty {
+  padding: 0.85rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.65rem;
+  background: var(--surface-subtle);
+  color: var(--text-soft);
+  font-size: 0.85rem;
+}
+
 @media (max-width: 900px) {
   .form-list {
     padding: 1rem;

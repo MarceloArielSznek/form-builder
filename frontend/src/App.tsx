@@ -6,6 +6,7 @@ import {
   Routes,
   useNavigate,
   useParams,
+  useSearchParams,
 } from 'react-router-dom'
 import { clearToken, ensureToken, isAuthenticated, login } from './api/auth'
 import { UnsavedChangesProvider } from './hooks/useUnsavedChanges'
@@ -212,6 +213,7 @@ function FormListRoute() {
     <FormList
       onSelectForm={(id) => navigate(`/forms/${id}`)}
       onCreateNew={() => navigate('/forms/new')}
+      onDuplicateForm={(id) => navigate(`/forms/new?duplicateFrom=${encodeURIComponent(id)}`)}
     />
   )
 }
@@ -219,10 +221,13 @@ function FormListRoute() {
 function FormEditorRoute() {
   const navigate = useNavigate()
   const { formId } = useParams<{ formId: string }>()
+  const [searchParams] = useSearchParams()
+  const duplicateFromId = formId ? null : searchParams.get('duplicateFrom')
 
   return (
     <FormEditor
       formId={formId ?? null}
+      duplicateFromId={duplicateFromId}
       onBack={() => navigate('/forms')}
       onSaved={(id) => navigate(`/forms/${id}`, { replace: true })}
     />

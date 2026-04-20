@@ -14,11 +14,12 @@ type EditorStep = 'build' | 'postSubmission'
 
 interface FormEditorProps {
   formId: string | null
+  duplicateFromId?: string | null
   onBack: () => void
   onSaved: (id: string) => void
 }
 
-export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps) {
+export default function FormEditor({ formId, duplicateFromId = null, onBack, onSaved }: FormEditorProps) {
   const {
     form,
     fields,
@@ -33,6 +34,7 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
     blockingIssueCount,
     warningCount,
     isDirty,
+    isDuplicateDraft,
     loadForm,
     updateTitle,
     addField,
@@ -44,7 +46,7 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
     save,
     setSelectedFieldId,
     updateFormMeta,
-  } = useFormEditor(formId)
+  } = useFormEditor(formId, duplicateFromId)
   const { confirmNavigation, setDirty } = useUnsavedChanges()
   const [editorStep, setEditorStep] = useState<EditorStep>('build')
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null)
@@ -162,7 +164,9 @@ export default function FormEditor({ formId, onBack, onSaved }: FormEditorProps)
           </button>
           <span className="form-editor__header-divider" aria-hidden="true" />
           <div className="form-editor__meta">
-            <span className="app-pill">{form?.id ? 'Existing form' : 'Draft form'}</span>
+            <span className="app-pill">
+              {form?.id ? 'Existing form' : isDuplicateDraft ? 'Duplicated draft' : 'Draft form'}
+            </span>
             <span className={`app-pill ${isDirty ? 'form-editor__status-pill--warning' : 'form-editor__status-pill--success'}`}>
               {isDirty ? 'Unsaved changes' : 'Saved'}
             </span>

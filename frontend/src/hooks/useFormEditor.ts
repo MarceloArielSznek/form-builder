@@ -83,6 +83,31 @@ function serializeForm(form: Form | null): string {
   })
 }
 
+/**
+ * Strip ids from a fields tree (recursive) so Payload regenerates fresh ones
+ * when the duplicated form is created. This prevents id collisions on nested
+ * arrays such as select/radio `options` or payment `priceConditions`.
+ */
+function stripIdsDeep<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => stripIdsDeep(item)) as unknown as T
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+      if (key === 'id') continue
+      out[key] = stripIdsDeep(val)
+    }
+    return out as T
+  }
+  return value
+}
+
+/** Clone fields for a duplication flow: remove ids at every level. */
+export function cloneFieldsForDuplicate(fields: FormFieldBlock[]): FormFieldBlock[] {
+  return stripIdsDeep(fields)
+}
+
 function normalizeForm(form: Form): Form {
   const fields = ensureBuilderFields(Array.isArray(form.fields) ? form.fields : [])
   const emails = Array.isArray(form.emails)
@@ -107,15 +132,17 @@ function normalizeForm(form: Form): Form {
   }
 }
 
-export function useFormEditor(formId: string | null) {
+export function useFormEditor(formId: string | null, duplicateFromId: string | null = null) {
   const [form, setForm] = useState<Form | null>(null)
-  const [loading, setLoading] = useState(Boolean(formId))
+  const [loading, setLoading] = useState(Boolean(formId) || Boolean(duplicateFromId))
   const [saving, setSaving] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saveFeedback, setSaveFeedback] = useState<SaveFeedback | null>(null)
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
+  const [isDuplicateDraft, setIsDuplicateDraft] = useState(false)
   const snapshotRef = useRef('')
   const requestIdRef = useRef(0)
+  const duplicateFetchedRef = useRef<string | null>(null)
 
   const commitForm = useCallback((nextForm: Form) => {
     const normalized = normalizeForm(nextForm)
@@ -161,16 +188,73 @@ export function useFormEditor(formId: string | null) {
         setLoadError(null)
         return
       }
+      setIsDuplicateDraft(false)
+      duplicateFetchedRef.current = null
       void loadForm(formId)
       return
     }
 
+    if (duplicateFromId) {
+      // Only fetch once per duplicateFromId value: prevents re-running the
+      // duplicate fetch after a successful create (which sets form.id) while
+      // the URL still carries ?duplicateFrom=…
+      if (duplicateFetchedRef.current === duplicateFromId) {
+        return
+      }
+      duplicateFetchedRef.current = duplicateFromId
+
+      const requestId = ++requestIdRef.current
+      setLoading(true)
+      setLoadError(null)
+      setSaveFeedback(null)
+
+      ;(async () => {
+        try {
+          const source = await getForm(duplicateFromId, { depth: 2 })
+          if (requestId !== requestIdRef.current) return
+          const clonedFields = cloneFieldsForDuplicate(
+            Array.isArray(source.fields) ? source.fields : [],
+          )
+          setIsDuplicateDraft(true)
+          commitForm({
+            id: '',
+            title: '',
+            fields: clonedFields,
+            submitButtonLabel: undefined,
+            confirmationType: 'message',
+            confirmationMessageText: '',
+            redirect: { url: null },
+            emails: [],
+            formCategory: undefined,
+            organization: undefined,
+            branches: [],
+          })
+        } catch (error) {
+          if (requestId !== requestIdRef.current) return
+          setLoadError(
+            error instanceof Error
+              ? `Could not load the source form to duplicate: ${error.message}`
+              : 'Could not load the source form to duplicate.',
+          )
+          setIsDuplicateDraft(false)
+          commitForm({ id: '', title: '', fields: [] })
+        } finally {
+          if (requestId === requestIdRef.current) {
+            setLoading(false)
+          }
+        }
+      })()
+      return
+    }
+
     requestIdRef.current += 1
+    duplicateFetchedRef.current = null
     setLoading(false)
     setLoadError(null)
     setSaveFeedback(null)
+    setIsDuplicateDraft(false)
     commitForm({ id: '', title: '', fields: [] })
-  }, [commitForm, form?.id, formId, loadForm])
+  }, [commitForm, duplicateFromId, form?.id, formId, loadForm])
 
   const fields = useMemo(() => (Array.isArray(form?.fields) ? form.fields : []), [form?.fields])
 
@@ -385,6 +469,7 @@ export function useFormEditor(formId: string | null) {
     blockingIssueCount,
     warningCount,
     isDirty,
+    isDuplicateDraft,
     loadForm,
     updateTitle,
     updateFormMeta,
