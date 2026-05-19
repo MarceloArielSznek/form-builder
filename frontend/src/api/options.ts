@@ -1,10 +1,8 @@
-import { payloadConfig } from '../lib/env'
-import { getStoredToken } from './auth'
+import { appConfig } from '../lib/env'
 import { jsonHeaders, requestJson } from './http'
 
 function getAuthHeaders(): HeadersInit {
-  const token = getStoredToken()
-  return jsonHeaders(token ? { Authorization: `JWT ${token}` } : undefined)
+  return jsonHeaders()
 }
 
 export interface Branch {
@@ -32,8 +30,8 @@ interface ListResponse<T> {
 }
 
 function listUrl(slug: string, path = ''): string {
-  const base = payloadConfig.apiUrl
-  return `${base}/api/${slug}${path}`
+  const base = appConfig.apiUrl
+  return `${base}/api/menaia/${slug}${path}`
 }
 
 function parseNumericId(id: unknown): number | null {
@@ -42,12 +40,12 @@ function parseNumericId(id: unknown): number | null {
 }
 
 /**
- * Fetch branches from Payload (e.g. /api/branches). Used for form branch multi-select.
+ * Fetch branches from Menaia (e.g. /api/branches). Used for form branch multi-select.
  * Returns empty array on error (e.g. 404 if collection missing).
  */
 export async function getBranches(): Promise<Branch[]> {
   try {
-    const url = `${listUrl(payloadConfig.branchesSlug)}?limit=500`
+    const url = `${listUrl(appConfig.branchesSlug)}?limit=500`
     const data = await requestJson<ListResponse<Branch>>(url, { headers: getAuthHeaders() })
     const docs = Array.isArray(data.docs) ? data.docs : []
     const mapped: Branch[] = []
@@ -63,12 +61,12 @@ export async function getBranches(): Promise<Branch[]> {
 }
 
 /**
- * Fetch organizations from Payload (e.g. /api/organizations). Used for form organization selector.
+ * Fetch organizations from Menaia (e.g. /api/organizations). Used for form organization selector.
  * Returns empty array on error (e.g. 404 if collection missing).
  */
 export async function getOrganizations(): Promise<Organization[]> {
   try {
-    const url = `${listUrl(payloadConfig.organizationsSlug)}?limit=500`
+    const url = `${listUrl(appConfig.organizationsSlug)}?limit=500`
     const data = await requestJson<ListResponse<Organization>>(url, { headers: getAuthHeaders() })
     const docs = Array.isArray(data.docs) ? data.docs : []
     const mapped: Organization[] = []
@@ -84,12 +82,12 @@ export async function getOrganizations(): Promise<Organization[]> {
 }
 
 /**
- * Fetch form category options from Payload (e.g. /api/form-categories). Used for form category dropdown.
+ * Fetch form category options from Menaia (e.g. /api/form-categories). Used for form category dropdown.
  * Returns empty array on error (e.g. 404 if collection missing).
  */
 export async function getFormCategories(): Promise<FormCategoryOption[]> {
   try {
-    const url = `${listUrl(payloadConfig.formCategoriesSlug)}?limit=100`
+    const url = `${listUrl(appConfig.formCategoriesSlug)}?limit=100`
     const data = await requestJson<ListResponse<FormCategoryOption & { id?: string }>>(url, {
       headers: getAuthHeaders(),
     })

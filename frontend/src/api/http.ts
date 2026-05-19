@@ -38,7 +38,7 @@ export async function requestJson<T>(url: string, init?: RequestJsonInit): Promi
     response = await fetch(url, { ...init, signal: timeoutController.signal })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s. Please check Payload URL and network connectivity.`)
+      throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s. Please check the backend URL and network connectivity.`)
     }
     throw error
   } finally {

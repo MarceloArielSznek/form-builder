@@ -27,7 +27,7 @@ export default function ProductLayout({ onLogout }: ProductLayoutProps) {
           </div>
           <div>
             <div className="product-layout__brand-title">Form Builder</div>
-            <div className="product-layout__brand-subtitle">Payload CMS workspace</div>
+            <div className="product-layout__brand-subtitle">Menaia workspace</div>
           </div>
         </div>
 
@@ -72,7 +72,7 @@ export default function ProductLayout({ onLogout }: ProductLayoutProps) {
           className="app-button--ghost product-layout__logout"
           onClick={() => handleProtectedAction(onLogout)}
         >
-          Sign out
+          Reconnect
         </button>
       </header>
 

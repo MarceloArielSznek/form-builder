@@ -1,10 +1,8 @@
-import { payloadConfig } from '../lib/env'
-import { getStoredToken } from './auth'
+import { appConfig } from '../lib/env'
 import { jsonHeaders, requestJson } from './http'
 
 function getAuthHeaders(): HeadersInit {
-  const token = getStoredToken()
-  return jsonHeaders(token ? { Authorization: `JWT ${token}` } : undefined)
+  return jsonHeaders()
 }
 
 export interface ConvertToHtmlResponse {
@@ -21,7 +19,7 @@ interface ConvertToHtmlOptions {
  * All {{...}} placeholders must be preserved in the returned HTML.
  */
 export async function convertMessageToHtml(message: string, options?: ConvertToHtmlOptions): Promise<string> {
-  const url = payloadConfig.aiConvertUrl
+  const url = appConfig.aiConvertUrl
   if (!url || !message.trim()) {
     throw new Error('Convert URL not configured or message is empty.')
   }
@@ -40,5 +38,5 @@ export async function convertMessageToHtml(message: string, options?: ConvertToH
 }
 
 export function isConvertToHtmlAvailable(): boolean {
-  return Boolean(payloadConfig.aiConvertUrl?.trim())
+  return Boolean(appConfig.aiConvertUrl?.trim())
 }

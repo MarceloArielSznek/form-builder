@@ -243,7 +243,7 @@ export default function PostSubmissionPanel({ form, onUpdate }: PostSubmissionPa
             {branchDropdownOpen && (
               <div className="post-submission__multiselect-dropdown" role="listbox">
                 {branches.length === 0 ? (
-                  <div className="post-submission__multiselect-empty">No branches in Payload.</div>
+                  <div className="post-submission__multiselect-empty">No branches in Menaia.</div>
                 ) : (
                   branches.map((branch) => (
                     <label key={branch.id} className="post-submission__multiselect-option">

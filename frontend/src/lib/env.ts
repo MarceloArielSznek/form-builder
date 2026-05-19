@@ -1,32 +1,31 @@
 /**
- * Payload API config from environment. Set in .env (see .env.example).
- * In dev we use the Vite proxy path so requests are same-origin (avoids CORS).
+ * App API config from environment. Menaia credentials stay in the backend .env.
  */
 function getOptionalEnv(key: string, fallback = ''): string {
   const value = import.meta.env[key]
   return typeof value === 'string' && value.length > 0 ? value : fallback
 }
 
-const rawApiUrl = getOptionalEnv('VITE_PAYLOAD_API_URL', 'http://localhost:3000').replace(/\/$/, '')
+const rawBackendApiUrl = getOptionalEnv('VITE_BACKEND_API_URL', 'http://localhost:3001').replace(/\/$/, '')
 
-export const payloadConfig = {
-  /** Base URL for Payload API. In dev uses proxy path to avoid CORS. */
+function getBackendApiUrl(): string {
+  if (import.meta.env.DEV && typeof window !== 'undefined') {
+    return `${window.location.origin}/backend-api`
+  }
+  return rawBackendApiUrl
+}
+
+export const appConfig = {
+  /** Base URL for this app's backend. In dev uses a Vite proxy to avoid CORS. */
   get apiUrl(): string {
-    if (import.meta.env.DEV && typeof window !== 'undefined') {
-      return `${window.location.origin}/payload-api`
-    }
-    return rawApiUrl
+    return getBackendApiUrl()
   },
-  authSlug: getOptionalEnv('VITE_PAYLOAD_AUTH_SLUG', 'users'),
-  formsSlug: getOptionalEnv('VITE_PAYLOAD_FORMS_SLUG', 'forms'),
-  organizationsSlug: getOptionalEnv('VITE_PAYLOAD_ORGANIZATIONS_SLUG', 'organizations'),
-  branchesSlug: getOptionalEnv('VITE_PAYLOAD_BRANCHES_SLUG', 'branches'),
-  formCategoriesSlug: getOptionalEnv('VITE_PAYLOAD_FORM_CATEGORIES_SLUG', 'form-categories'),
-  adminEmail: getOptionalEnv('VITE_PAYLOAD_ADMIN_EMAIL'),
-  adminPassword: getOptionalEnv('VITE_PAYLOAD_ADMIN_PASSWORD'),
-  hasAutoLoginCredentials: Boolean(
-    getOptionalEnv('VITE_PAYLOAD_ADMIN_EMAIL') && getOptionalEnv('VITE_PAYLOAD_ADMIN_PASSWORD'),
-  ),
+  formsSlug: getOptionalEnv('VITE_MENAIA_FORMS_SLUG', 'forms'),
+  organizationsSlug: getOptionalEnv('VITE_MENAIA_ORGANIZATIONS_SLUG', 'organizations'),
+  branchesSlug: getOptionalEnv('VITE_MENAIA_BRANCHES_SLUG', 'branches'),
+  formCategoriesSlug: getOptionalEnv('VITE_MENAIA_FORM_CATEGORIES_SLUG', 'form-categories'),
   /** Optional: URL for AI convert-to-HTML endpoint (POST { message } => { html }). */
-  aiConvertUrl: getOptionalEnv('VITE_AI_CONVERT_URL'),
+  get aiConvertUrl(): string {
+    return getOptionalEnv('VITE_AI_CONVERT_URL', `${getBackendApiUrl()}/api/convert-email-to-html`)
+  },
 }

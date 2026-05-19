@@ -121,7 +121,7 @@ export default function FormList({ onSelectForm, onCreateNew, onDuplicateForm }:
       <section className="form-list__hero">
         <div className="form-list__hero-copy">
           <span className="app-status__eyebrow">Workspace overview</span>
-          <h1 className="form-list__title">Build, review, and maintain your Payload forms</h1>
+          <h1 className="form-list__title">Build, review, and maintain your Menaia forms</h1>
           <p className="form-list__subtitle">
             Create new forms, refine existing ones, and jump back into editing with a clearer
             overview of your current workspace.
@@ -178,7 +178,7 @@ export default function FormList({ onSelectForm, onCreateNew, onDuplicateForm }:
 
         {loading ? (
           <div className="form-list__state app-banner" aria-live="polite">
-            Loading forms from Payload…
+            Loading forms from Menaia...
           </div>
         ) : error ? (
           <div className="form-list__state app-banner--danger" role="alert">
@@ -196,7 +196,7 @@ export default function FormList({ onSelectForm, onCreateNew, onDuplicateForm }:
             <p>
               {isSearching
                 ? 'Try a different search term, or create a new form.'
-                : 'Create your first Payload form to start building fields and previewing the experience.'}
+                : 'Create your first Menaia form to start building fields and previewing the experience.'}
             </p>
             <button type="button" className="app-button" onClick={onCreateNew}>
               Create form

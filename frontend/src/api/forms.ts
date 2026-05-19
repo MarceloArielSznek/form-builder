@@ -1,16 +1,14 @@
-import { payloadConfig } from '../lib/env'
-import { getStoredToken } from './auth'
+import { appConfig } from '../lib/env'
 import { jsonHeaders, requestJson } from './http'
 import type { Form, FormFieldBlock } from '../types/payload'
 
 function getAuthHeaders(): HeadersInit {
-  const token = getStoredToken()
-  return jsonHeaders(token ? { Authorization: `JWT ${token}` } : undefined)
+  return jsonHeaders()
 }
 
 function formsUrl(path = ''): string {
-  const base = payloadConfig.apiUrl
-  return `${base}/api/${payloadConfig.formsSlug}${path}`
+  const base = appConfig.apiUrl
+  return `${base}/api/menaia/${appConfig.formsSlug}${path}`
 }
 
 export interface ListFormsResponse {

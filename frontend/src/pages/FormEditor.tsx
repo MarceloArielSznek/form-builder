@@ -127,7 +127,7 @@ export default function FormEditor({ formId, duplicateFromId = null, onBack, onS
         <div className="form-editor__state app-card">
           <span className="app-status__eyebrow">Loading form</span>
           <h2>Opening the builder</h2>
-          <p>Fetching the latest form configuration from Payload.</p>
+          <p>Fetching the latest form configuration from Menaia.</p>
         </div>
       </div>
     )

@@ -1,84 +1,35 @@
-import { payloadConfig } from '../lib/env'
-import { jsonHeaders, requestJson } from './http'
+import { appConfig } from '../lib/env'
+import { requestJson } from './http'
 
-const TOKEN_KEY = 'payload_formbuilder_token'
-const EXP_KEY = 'payload_formbuilder_exp'
+const SESSION_KEY = 'menaia_formbuilder_session'
 
-export type LoginResult =
-  | { ok: true; token: string; exp: number; user: { id: string; email: string } }
+export type SessionResult =
+  | { ok: true; expiresAt: number | null; cookieChunks: number }
   | { ok: false; error: string }
 
-/**
- * Login with Payload admin credentials. On success, token is stored in sessionStorage.
- * Credentials come from the login form (or optionally from env for local use).
- */
-export async function login(email: string, password: string): Promise<LoginResult> {
-  const url = `${payloadConfig.apiUrl}/api/${payloadConfig.authSlug}/login`
+export async function ensureSession(): Promise<SessionResult> {
+  const url = `${appConfig.apiUrl}/api/menaia/session`
   try {
-    const data = await requestJson<{ token: string; exp: number; user: { id: string; email: string } }>(
-      url,
-      {
-        method: 'POST',
-        headers: jsonHeaders(),
-        body: JSON.stringify({ email, password }),
-      },
-    )
+    const data = await requestJson<{ ok: true; expiresAt: number | null; cookieChunks: number }>(url)
 
-    const token = data.token
-    const exp = data.exp
-    const user = data.user
-
-    if (token) {
-      sessionStorage.setItem(TOKEN_KEY, token)
-      sessionStorage.setItem(EXP_KEY, String(exp))
-    }
-
-    return { ok: true, token, exp, user }
+    sessionStorage.setItem(SESSION_KEY, 'ready')
+    return data
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Network error'
     const cause = e instanceof Error && e.cause instanceof Error ? e.cause.message : ''
     const detail = cause ? `${message} (${cause})` : message
     if (typeof window !== 'undefined') {
-      console.error('[Payload login] Request URL:', url, 'Error:', detail)
+      console.error('[Menaia session] Request URL:', url, 'Error:', detail)
     }
+    sessionStorage.removeItem(SESSION_KEY)
     return { ok: false, error: message }
   }
 }
 
-export function getStoredToken(): string | null {
-  return sessionStorage.getItem(TOKEN_KEY)
+export function clearSession(): void {
+  sessionStorage.removeItem(SESSION_KEY)
 }
 
-export function getStoredExp(): number | null {
-  const exp = sessionStorage.getItem(EXP_KEY)
-  return exp ? parseInt(exp, 10) : null
-}
-
-/** Clear stored token (e.g. logout). */
-export function clearToken(): void {
-  sessionStorage.removeItem(TOKEN_KEY)
-  sessionStorage.removeItem(EXP_KEY)
-}
-
-/** True if we have a token and it is not yet expired (with 60s buffer). */
 export function isAuthenticated(): boolean {
-  const token = getStoredToken()
-  const exp = getStoredExp()
-  if (!token || exp == null) return false
-  return Date.now() / 1000 < exp - 60
-}
-
-/**
- * Ensure we have a token on startup: if already authenticated, do nothing;
- * otherwise log in with credentials from .env (VITE_PAYLOAD_ADMIN_EMAIL, VITE_PAYLOAD_ADMIN_PASSWORD).
- * Call this before rendering the app.
- */
-export async function ensureToken(): Promise<LoginResult | null> {
-  if (isAuthenticated()) return null
-  const { adminEmail, adminPassword, hasAutoLoginCredentials } = payloadConfig
-  if (!hasAutoLoginCredentials || !adminEmail || !adminPassword) {
-    console.warn('Payload: no credentials in .env (VITE_PAYLOAD_ADMIN_EMAIL, VITE_PAYLOAD_ADMIN_PASSWORD). Set them to auto-login.')
-    return null
-  }
-  return login(adminEmail, adminPassword)
+  return sessionStorage.getItem(SESSION_KEY) === 'ready'
 }

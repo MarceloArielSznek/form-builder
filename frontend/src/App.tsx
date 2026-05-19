@@ -8,14 +8,12 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom'
-import { clearToken, ensureToken, isAuthenticated, login } from './api/auth'
+import { clearSession, ensureSession, isAuthenticated } from './api/auth'
 import { UnsavedChangesProvider } from './hooks/useUnsavedChanges'
-import { payloadConfig } from './lib/env'
 import AppStatusScreen from './components/AppStatusScreen'
 import ProductLayout from './layouts/ProductLayout'
 import FormList from './pages/FormList'
 import FormEditor from './pages/FormEditor'
-import LoginPage from './pages/LoginPage'
 
 type AuthStatus = 'booting' | 'authenticated' | 'unauthenticated'
 
@@ -28,8 +26,8 @@ function App() {
     setAuthBusy(true)
     setAuthError(null)
     try {
-      const result = await ensureToken()
-      if (result && !result.ok) {
+      const result = await ensureSession()
+      if (!result.ok) {
         setAuthStatus('unauthenticated')
         setAuthError(result.error)
         return
@@ -47,28 +45,10 @@ function App() {
     void bootstrapAuth()
   }, [bootstrapAuth])
 
-  const handleLogin = useCallback(async (credentials: { email: string; password: string }) => {
-    setAuthBusy(true)
-    setAuthError(null)
-    const result = await login(credentials.email, credentials.password)
-    if (!result.ok) {
-      setAuthStatus('unauthenticated')
-      setAuthError(result.error)
-      setAuthBusy(false)
-      return
-    }
-    setAuthStatus('authenticated')
-    setAuthBusy(false)
-  }, [])
-
   const handleLogout = useCallback(() => {
-    clearToken()
-    setAuthStatus('unauthenticated')
-    setAuthError(null)
-  }, [])
-
-  const hasEnvCredentials = payloadConfig.hasAutoLoginCredentials
-  const defaultUnauthenticatedPath = hasEnvCredentials ? '/forms' : '/login'
+    clearSession()
+    void bootstrapAuth()
+  }, [bootstrapAuth])
 
   return (
     <BrowserRouter>
@@ -80,22 +60,14 @@ function App() {
               element={
                 authStatus === 'authenticated' ? (
                   <Navigate to="/forms" replace />
-                ) : hasEnvCredentials ? (
-                  <Navigate to={defaultUnauthenticatedPath} replace />
                 ) : authStatus === 'booting' ? (
                   <AppStatusScreen
                     eyebrow="Initializing"
-                    title="Connecting to Payload"
-                    description="Checking your current session and preparing the form builder workspace."
+                    title="Connecting to Menaia"
+                    description="Checking the backend Supabase session and preparing the form builder workspace."
                   />
                 ) : (
-                  <LoginPage
-                    initialEmail={payloadConfig.adminEmail}
-                    initialPassword={payloadConfig.adminPassword}
-                    loading={authBusy}
-                    error={authError}
-                    onSubmit={handleLogin}
-                  />
+                  <Navigate to="/forms" replace />
                 )
               }
             />
@@ -106,7 +78,6 @@ function App() {
                   authStatus={authStatus}
                   authBusy={authBusy}
                   authError={authError}
-                  hasEnvCredentials={hasEnvCredentials}
                   onRetry={bootstrapAuth}
                   onLogout={handleLogout}
                 />
@@ -122,7 +93,7 @@ function App() {
               path="*"
               element={
                 <Navigate
-                  to={authStatus === 'authenticated' ? '/forms' : defaultUnauthenticatedPath}
+                  to="/forms"
                   replace
                 />
               }
@@ -138,7 +109,6 @@ interface ProtectedLayoutProps {
   authStatus: AuthStatus
   authBusy: boolean
   authError: string | null
-  hasEnvCredentials: boolean
   onRetry: () => Promise<void>
   onLogout: () => void
 }
@@ -147,7 +117,6 @@ function ProtectedLayout({
   authStatus,
   authBusy,
   authError,
-  hasEnvCredentials,
   onRetry,
   onLogout,
 }: ProtectedLayoutProps) {
@@ -162,29 +131,26 @@ function ProtectedLayout({
   }
 
   if (authStatus !== 'authenticated') {
-    if (hasEnvCredentials) {
-      const isNetworkError =
-        authError === 'Failed to fetch' ||
-        authError?.toLowerCase().includes('network') ||
-        authError?.toLowerCase().includes('fetch')
-      const hint = isNetworkError
-        ? 'In dev the app proxies to VITE_PAYLOAD_API_URL. Ensure Payload is running at that URL and that /api/users/login is reachable. Open the browser console to see the exact request URL.'
-        : authError ?? 'Check VITE_PAYLOAD_API_URL and your credentials in .env.'
-      return (
-        <AppStatusScreen
-          eyebrow="Connection failed"
-          title="Could not connect to Payload"
-          description={hint}
-          tone="danger"
-          actions={
-            <button type="button" className="app-button" onClick={() => void onRetry()}>
-              Retry
-            </button>
-          }
-        />
-      )
-    }
-    return <Navigate to="/login" replace />
+    const isNetworkError =
+      authError === 'Failed to fetch' ||
+      authError?.toLowerCase().includes('network') ||
+      authError?.toLowerCase().includes('fetch')
+    const hint = isNetworkError
+      ? 'Ensure the backend is running and reachable through VITE_BACKEND_API_URL or the dev /backend-api proxy.'
+      : authError ?? 'Check the Menaia and Supabase values in backend/.env.'
+    return (
+      <AppStatusScreen
+        eyebrow="Connection failed"
+        title="Could not connect to Menaia"
+        description={hint}
+        tone="danger"
+        actions={
+          <button type="button" className="app-button" onClick={() => void onRetry()}>
+            Retry
+          </button>
+        }
+      />
+    )
   }
 
   if (authError) {
